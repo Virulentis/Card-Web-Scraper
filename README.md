@@ -20,10 +20,53 @@ Note: if the websites change **some/all** of the program may break.
   - Python 3.7 or higher
 - `playwright`: A Python library to automate web browsers.
 - `pandas`: A data manipulation and analysis library.
+- `beautifulsoup4`: A library that makes it easy to scrape information from web pages.
+- `html5lib`: A pure-python library for parsing HTML.
+
+## Installation
+
+### The following steps will be in command prompt:
+
+### Step 1: Clone the Repository
+
+`git clone https://github.com/Virulentis/Card-Web-Scraper.git`
+
+`cd web-scraper`
+
+### Step 2: Set Up a Virtual Environment
+
+`python -m venv venv`
+
+`source venv/bin/activate`
+
+### Step 3: Install Required Packages
+
+`pip install -r requirements.txt`
+
+### Step 4: Install Playwright Browsers
+
+`playwright install`
 
 ## Usage
 
-...
+### Config
+
+to change settings open config.py and change the variable values
+
+`ALLOW_FOIL, ALLOW_OUT_OF_STOCK`:
+ - allows foil or out of stock cards to be added to the result.
+`IS_F2F_SCRAPE, IS_WIZ_SCRAPE, IS_401_SCRAPE`:
+ - toggle the retailer you scrape cards from.
+`FILENAME, OUTPUT_PATH`:
+ - FILENAME: path to the input file.
+ - OUTPUT_PATH: path to the output file (including the results name and file extension.
+  
+### Running
+
+To run the web scraper, use the following command:
+
+`python main.py`
+
 
 ## 401 Note
 
