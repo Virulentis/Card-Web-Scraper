@@ -14,16 +14,22 @@ def clean_string(s):
 # TODO: Figure out how to deal with redirects.
 def scrape_401(card_dict, keyword_list):
     with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=False, )
+        browser = playwright.chromium.launch(headless=True, )
         page = browser.new_page()
 
         for keyword in keyword_list:
-            page.goto(
-                "https://store.401games.ca/pages/search-results?q=" + keyword +
-                "&filters=Category,Magic:+The+Gathering+Singles",
-                wait_until="domcontentloaded")
 
-            page.wait_for_selector('#products-grid', timeout=30000)
+            try:
+                page.goto(
+                    "https://store.401games.ca/pages/search-results?q=" + keyword +
+                    "&filters=Category,Magic:+The+Gathering+Singles",
+                    wait_until="domcontentloaded")
+
+                page.wait_for_selector('#products-grid', timeout=5000)
+
+            except:
+                print(keyword + ": failed")
+                continue
 
             html = page.inner_html('#products-grid')
 
@@ -65,5 +71,5 @@ def scrape_401(card_dict, keyword_list):
                 card_dict['Retailer'].append("401")
                 card_dict['Stock'].append(stock)
 
-        time.sleep(10)
+        print("Finished 401")
         browser.close()

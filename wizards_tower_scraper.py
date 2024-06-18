@@ -14,12 +14,17 @@ def scrape_wizards(card_dict, keyword_list):
         page = browser.new_page()
 
         for keyword in keyword_list:
-            page.goto(
-                "https://www.kanatacg.com/products/search?q=" + keyword + "&c=1",
-                wait_until="domcontentloaded")
 
-            page.wait_for_selector('.inner',
-                                   timeout=30000)
+            try:
+                page.goto(
+                    "https://www.kanatacg.com/products/search?q=" + keyword + "&c=1",
+                    wait_until="domcontentloaded")
+
+                page.wait_for_selector('.inner',
+                                       timeout=5000)
+            except:
+                print(keyword + ": failed")
+                continue
 
             html = page.inner_html('.inner')
 
@@ -73,3 +78,6 @@ def scrape_wizards(card_dict, keyword_list):
                     card_dict['Price'].append(price_tag)
                     card_dict['Retailer'].append("WIZ")
                     card_dict['Stock'].append(stock)
+
+        print("Finished WIZ")
+        browser.close()

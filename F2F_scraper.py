@@ -1,10 +1,11 @@
-from datetime import time
+import time
 
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import re
 import config
-
+# https://www.facetofacegames.com/search/?keyword=Dimir Signet&general brand=Magic%3A The Gathering
+# https://www.facetofacegames.com/search/?keyword=Dimir%20Signet&general%20brand=Magic%3A%20The%20Gathering
 
 # TODO: Find a better page.wait_for_selector than .hawkPrice as it is inconsistent
 def scrape_f2f(card_dict, keyword_list):
@@ -13,13 +14,17 @@ def scrape_f2f(card_dict, keyword_list):
         page = browser.new_page()
 
         for keyword in keyword_list:
-            page.goto(
-                "https://www.facetofacegames.com/search/?keyword=" + keyword +
-                "&general brand=Magic%3A The Gathering",
-                wait_until="domcontentloaded")
+            try:
+                page.goto(
+                    "https://www.facetofacegames.com/search/?keyword=" + keyword +
+                    "&general brand=Magic%3A The Gathering",
+                    wait_until="domcontentloaded")
 
-            page.wait_for_selector('.hawkPrice',
-                                   timeout=30000)
+                page.wait_for_selector('.hawk-results__action-stockPrice',
+                                       timeout=5000)
+            except:
+                print(keyword + ": failed")
+                continue
             # time.sleep(0.5)
             html = page.inner_html('.hawk-results')
 
@@ -73,7 +78,8 @@ def scrape_f2f(card_dict, keyword_list):
                         card_dict['Price'].append(price_tag)
                         card_dict['Retailer'].append("F2F")
                         card_dict['Stock'].append(stock)
-
+            # time.sleep(30)
+        print("Finished F2F")
         browser.close()
 
     return
