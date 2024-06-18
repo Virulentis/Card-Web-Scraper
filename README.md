@@ -53,11 +53,13 @@ Note: if the websites change **some/all** of the program may break.
 
 to change settings open config.py and change the variable values
 
-`ALLOW_FOIL, ALLOW_OUT_OF_STOCK`:
+ALLOW_FOIL, ALLOW_OUT_OF_STOCK:
  - allows foil or out of stock cards to be added to the result.
-`IS_F2F_SCRAPE, IS_WIZ_SCRAPE, IS_401_SCRAPE`:
+
+IS_F2F_SCRAPE, IS_WIZ_SCRAPE, IS_401_SCRAPE:
  - toggle the retailer you scrape cards from.
-`FILENAME, OUTPUT_PATH`:
+
+FILENAME, OUTPUT_PATH:
  - FILENAME: path to the input file.
  - OUTPUT_PATH: path to the output file (including the results name and file extension.
   
@@ -65,7 +67,7 @@ to change settings open config.py and change the variable values
 
 To run the web scraper, use the following command:
 
-`python main.py`
+`python card_scraper.py`
 
 
 ## 401 Note
