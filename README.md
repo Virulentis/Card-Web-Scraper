@@ -1,6 +1,6 @@
-#MTG Card Scraper
+# MTG Card Scraper
 
-##Introduction
+## Introduction
 
 This web scraper project is designed to collect data from three different websites: 
 F2F, Wiz, and 401. The data is then processed using pandas and saved into CSV files for further analysis.
@@ -8,24 +8,24 @@ F2F, Wiz, and 401. The data is then processed using pandas and saved into CSV fi
 Note: if the websites change **some/all** of the program may break.
 
 
-##Features
+## Features
 
 - Scrapes data from three websites: F2F, Wiz, and 401.
 - Processes and cleans data using pandas.
 - Saves the scraped data into CSV files.
 
-##Requirements
+## Requirements
 
 - Python Version
   - Python 3.7 or higher
 - `playwright`: A Python library to automate web browsers.
 - `pandas`: A data manipulation and analysis library.
 
-##Usage
+## Usage
 
 ...
 
-##401 Note
+## 401 Note
 
 401 Games does not provide condition easily and stock 
 number so a few concessions must be made:
