@@ -1,12 +1,8 @@
 import re
-
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
-
 import config
 
-
-# TODO: figure out what to do about prerelease
 
 def scrape_wizards(card_dict, keyword_list):
     with sync_playwright() as playwright:

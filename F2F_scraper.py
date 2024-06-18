@@ -1,11 +1,7 @@
-import time
-
 from playwright.sync_api import sync_playwright
 from bs4 import BeautifulSoup
 import re
 import config
-# https://www.facetofacegames.com/search/?keyword=Dimir Signet&general brand=Magic%3A The Gathering
-# https://www.facetofacegames.com/search/?keyword=Dimir%20Signet&general%20brand=Magic%3A%20The%20Gathering
 
 # TODO: Find a better page.wait_for_selector than .hawkPrice as it is inconsistent
 def scrape_f2f(card_dict, keyword_list):
