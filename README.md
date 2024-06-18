@@ -61,7 +61,7 @@ IS_F2F_SCRAPE, IS_WIZ_SCRAPE, IS_401_SCRAPE:
 
 FILENAME, OUTPUT_PATH:
  - FILENAME: path to the input file.
- - OUTPUT_PATH: path to the output file (including the results name and file extension.
+ - OUTPUT_PATH: path to the output file (including the results name and file extension).
   
 ### Running
 
