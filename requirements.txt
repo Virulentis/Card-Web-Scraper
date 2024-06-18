@@ -1,3 +1,4 @@
 playwright
 beautifulsoup4
 pandas
+html5lib
