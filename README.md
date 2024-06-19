@@ -37,8 +37,6 @@ Note: if the websites change **some/all** of the program may break.
 
 `python -m venv venv`
 
-`source venv/bin/activate`
-
 ### Step 3: Install Required Packages
 
 `pip install -r requirements.txt`
