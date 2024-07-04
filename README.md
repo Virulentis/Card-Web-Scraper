@@ -3,7 +3,7 @@
 ## Introduction
 
 This web scraper project is designed to collect data from three different websites: 
-F2F, Wiz, and 401. The data is then processed using pandas and saved into CSV files for further analysis.
+Face to Face Games (F2F), Wizards Tower (WIZ), and 401 Games (401). The data is then processed using pandas and saved into CSV files for further analysis.
 
 Note: if the websites change **some/all** of the program may break.
 
