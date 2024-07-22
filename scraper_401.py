@@ -1,6 +1,6 @@
+import logging
 import re
-from bs4 import BeautifulSoup, PageElement
-from playwright.sync_api import sync_playwright
+from bs4 import PageElement
 import config
 from classes import Card
 
@@ -11,51 +11,6 @@ def clean_string(s):
     return s
 
 
-# TODO: Figure out how to deal with redirects.
-
-def scrape_401(keyword_list: list[str]) -> list[Card]:
-    """
-        Opens the 401 Games online storefront on a card name
-        and gets the page html for each card name.
-
-        :param keyword_list: List of card names to search for.
-        :return: List of datatype Card.
-    """
-
-    res = []
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page()
-
-        for keyword in keyword_list:
-
-            try:
-                page.goto(
-                    "https://store.401games.ca/pages/search-results?q=" + keyword +
-                    "&filters=Category,Magic:+The+Gathering+Singles",
-                    wait_until="domcontentloaded")
-
-                page.wait_for_selector('#products-grid', timeout=5000)
-
-            except:
-                print(keyword + ": failed")
-                continue
-
-            html = page.inner_html('#products-grid')
-
-            soup = BeautifulSoup(html, 'html5lib')
-            for item in soup.find_all(class_="fs-results-product-card"):
-                card = create_card_401(keyword, item)
-
-                if card is not None:
-                    res.append(card)
-
-        print("Finished 401")
-        browser.close()
-    return res
-
-
 def create_card_401(keyword: str, item: PageElement) -> Card | None:
     """
         Parses information from the website into a Card datatype.
@@ -64,6 +19,7 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
         :param item: A part of a html page, one product entry
         :return: Card datatype
     """
+    logger = logging.getLogger("Card_Logger")
 
     card_name = item.find(class_="fs-product-title")['aria-label']
 
@@ -97,4 +53,5 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
         'stock': stock,
         'price': price
     }
+    logger.debug(res)
     return res

@@ -1,54 +1,11 @@
+import logging
 import re
-from classes import Card, CardCondition
-from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup, PageElement
+from bs4 import PageElement
 import config
+from classes import Card, CardCondition
 
 
-def scrape_wizards(keyword_list):
-    """
-    Opens the WizardsTower online storefront on a card name
-    and gets the page html for each card name.
-
-    :param keyword_list: List of card names to search for.
-    :return: List of datatype Card.
-    """
-
-    res = []
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True, )
-        page = browser.new_page()
-
-        for keyword in keyword_list:
-
-            try:
-                page.goto(
-                    "https://www.kanatacg.com/products/search?q=" + keyword + "&c=1",
-                    wait_until="domcontentloaded")
-
-                page.wait_for_selector('.inner',
-                                       timeout=5000)
-            except:
-                print(keyword + ": failed")
-                continue
-
-            html = page.inner_html('.inner')
-
-            soup = BeautifulSoup(html, 'html5lib')
-            for item in soup.find_all(class_="product enable-msrp"):
-                card_batch = create_card_WIZ(keyword, item)
-
-                if card_batch is not None:
-                    res += card_batch
-
-        print("Finished WIZ")
-        browser.close()
-
-    return res
-
-
-def create_card_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
+def create_card_batch_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     """
     Parses information from the website into a card datatype for each different card found.
 
@@ -58,6 +15,7 @@ def create_card_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     """
 
     res = []
+    logger = logging.getLogger("Card_Logger")
     card_name = item.find_next(class_="name").text
 
     if not (keyword in card_name):
@@ -109,6 +67,8 @@ def create_card_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
             'stock': stock,
             'price': price_tag
         }
+        logger.debug(res_card)
         res.append(res_card)
+
 
     return res

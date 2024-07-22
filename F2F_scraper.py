@@ -1,50 +1,8 @@
-from playwright.sync_api import sync_playwright
-from bs4 import BeautifulSoup, PageElement
+import logging
 import re
+from bs4 import PageElement
 import config
 from classes import Card, CardCondition
-
-
-# TODO: Find a better page.wait_for_selector than .hawkPrice as it is inconsistent
-def scrape_f2f(keyword_list: list[str]) -> list[Card]:
-    """
-        Opens the FaceToFaceGames online storefront on a card name
-        and gets the page html for each search of the card name.
-
-        :param keyword_list: List of card names to search for.
-        :return: List of datatype Card.
-    """
-
-    res = []
-
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch(headless=True)
-        page = browser.new_page()
-
-        for keyword in keyword_list:
-            try:
-                page.goto(
-                    "https://www.facetofacegames.com/search/?keyword=" + keyword +
-                    "&general brand=Magic%3A The Gathering",
-                    wait_until="domcontentloaded")
-
-                page.wait_for_selector('.hawk-results__action-stockPrice',
-                                       timeout=5000)
-            except:
-                print(keyword + ": failed")
-                continue
-            # time.sleep(0.5)
-            html = page.inner_html('.hawk-results')
-
-            soup = BeautifulSoup(html, 'html5lib')
-            for item in soup.find_all(class_="hawk-results-item__inner"):
-                card_batch = create_card_batch_F2F(keyword, item)
-
-                if card_batch is not None:
-                    res += card_batch
-        print("Finished F2F")
-        browser.close()
-    return res
 
 
 def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
@@ -56,12 +14,12 @@ def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
         :return: A list of dictionaries containing the parsed properties of the item
     """
 
-
     finish_list = []
     condition_list = []
     condition_pattern = re.compile(r'condition_')
     finish_pattern = re.compile(r'finish_')
     res = []
+    logger = logging.getLogger("Card_Logger")
 
     card_name = item.find_next(class_="hawk-results__hawk-contentTitle").text.rstrip()
 
@@ -119,6 +77,7 @@ def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
             'stock': stock,
             'price': price_tag
         }
+        logger.debug(res_card)
         res.append(res_card)
 
     return res
