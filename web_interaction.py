@@ -60,7 +60,7 @@ def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | N
                     return
 
             except:
-                logger.info(keyword + ": failed")
+                logger.info(f"\033[31;1;4m{keyword}: failed, retailer {retailer}\033[0m")
                 continue
 
             if retailer == "F2F":
