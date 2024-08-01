@@ -30,23 +30,44 @@ def text_to_list() -> list[str]:
     file_object.close()
     return key_list
 
+
 # TODO: fix issues with frames and card names that can be contained on another card.
 def cost_of_deck(card_df: DataFrame) -> None:
     """
-    Pulls the first time a name is used and gets the price.
+    Pulls The first time a name is used and gets the price.
     Adds the prices together to create an estimate of the deck cost.
-    :param card_df: a dataset that contains names and prices
-    :return: nothing
+    :param card_df: A dataset that contains names and prices.
+    :return: nothing.
     """
-    card_names_group = card_df.groupby('card_name').first().reset_index()
-    price = 0
-    card_seen = {}
     logger = logging.getLogger("Card_Logger")
 
-    for index, row in card_names_group.iterrows():
-        card_seen.get(row['card_name'], )
-        print(row['card_name'])
-        print(row['price'])
-        price += float(row['price'])
+    card_names_group = card_df.groupby('card_name')['price'].min().reset_index()
+    price = 0
 
-    logger.info(f"\x1b[38;5;208mEstimated total of ${price}")
+    for index, row in card_names_group.iterrows():
+        logger.info(f"\x1b[38;5;93m{row['card_name']} \t\t {row['price']}\033[0m")
+        price += row['price']
+
+    logger.info(f"\x1b[38;5;208mEstimated total of ${price:.2f}")
+
+
+def find_card_frame(full_card_name: str) -> str:
+    """
+    Takes the provided card name from the retailer
+    and finds any frame keywords.
+    :param full_card_name: Name from the retailer
+    which sometimes provides frame information.
+    :return: a string containing all the frame keywords
+    """
+    res = ""
+
+    keywords = {"extended", "borderless", "promo", "serial numbered", "showcase", "oversized",
+                "retro", "chinese", "japanese"}
+
+    for keyword in keywords:
+        if keyword in full_card_name.lower():
+            if res == "":
+                res += keyword
+            else:
+                res += f", {keyword}"
+    return res
