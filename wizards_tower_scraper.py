@@ -29,7 +29,7 @@ def create_card_batch_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     else:
         is_foil = False
 
-    card_name = re.sub(r" - Foil$", "", card_name)
+    card_name = re.sub(r"(?:\s*\(.*|\s*- Foil.*)?", "", card_name)
 
     for row in item.find_all(lambda tag: tag.name == 'div' and 'variant-row'
                                          in tag.get('class', []) and 'row' in tag.get('class', [])):
