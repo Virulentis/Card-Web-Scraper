@@ -1,8 +1,11 @@
 import logging
+import decimal as dec
 import re
 from bs4 import PageElement
 import config
+import utils
 from classes import Card
+
 
 
 def clean_string(s):
@@ -21,9 +24,11 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
     """
     logger = logging.getLogger("Card_Logger")
 
-    card_name = item.find(class_="fs-product-title")['aria-label']
+    full_card_name = item.find(class_="fs-product-title")['aria-label']
+    card_name = clean_string(full_card_name)
+    logger.debug(card_name)
 
-    if not (keyword in card_name):
+    if keyword != card_name:
         return
     if item.find(class_="in-stock") is not None:
         stock = 1
@@ -38,8 +43,6 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
     else:
         is_foil = False
 
-    card_name = clean_string(card_name)
-
     card_set = item.find(class_="fs-product-vendor").text
 
     price = item.find(class_="price").text
@@ -49,9 +52,10 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
         'card_name': card_name,
         'card_set': card_set,
         'is_foil': is_foil,
-        'retailer': '401',
+        'retailer': '401G',
         'stock': stock,
-        'price': price
+        'price': dec.Decimal("%0.2f" % float(dec.Decimal(price))),
+        'frame': utils.find_card_frame(full_card_name)
     }
     logger.debug(res)
     return res

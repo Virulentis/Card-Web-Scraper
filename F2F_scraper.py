@@ -1,8 +1,11 @@
 import logging
 import re
+import decimal as dec
 from bs4 import PageElement
 import config
+import utils
 from classes import Card, CardCondition
+import re
 
 
 def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
@@ -21,9 +24,11 @@ def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
     res = []
     logger = logging.getLogger("Card_Logger")
 
-    card_name = item.find_next(class_="hawk-results__hawk-contentTitle").text.rstrip()
+    full_card_name = item.find_next(class_="hawk-results__hawk-contentTitle").text.rstrip()
+    card_name = re.sub(r"(?:\s*\(.*|\s* - .*)?", "", full_card_name)
+    logger.debug(card_name)
 
-    if keyword not in card_name:
+    if keyword != card_name:
         return
 
     card_set = item.find_next(class_="hawk-results__hawk-contentSubtitle").text
@@ -35,6 +40,8 @@ def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
 
     condition_list.reverse()
     finish_list.reverse()
+
+    frame = utils.find_card_frame(full_card_name)
 
     for price in item.find_all(class_="hawkPrice"):
         stock = item.find(class_="hawkStock", attrs={'data-var-id': price["data-var-id"]})[
@@ -75,7 +82,8 @@ def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
             'is_foil': is_foil,
             'retailer': 'F2F',
             'stock': stock,
-            'price': price_tag
+            'price': dec.Decimal("%0.2f" % float(dec.Decimal(price_tag))),
+            'frame': frame
         }
         logger.debug(res_card)
         res.append(res_card)
