@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import TypedDict, NotRequired
+import decimal as dec
 
 
 class CardCondition(Enum):
@@ -12,6 +13,7 @@ class CardCondition(Enum):
     MP = "MP"
     HP = "HP"
 
+
 class Card(TypedDict):
     """Represents a MTG Card
     """
@@ -22,4 +24,5 @@ class Card(TypedDict):
     is_foil: bool
     retailer: str
     stock: int
-    price: str
+    price: dec.Decimal
+    frame: NotRequired[str]
