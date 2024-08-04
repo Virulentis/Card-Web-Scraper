@@ -1,11 +1,10 @@
+import decimal as dec
 import logging
 import re
-import decimal as dec
 from bs4 import PageElement
 import config
 import utils
 from classes import Card, CardCondition
-import re
 
 
 def create_card_batch_F2F(keyword: str, item: PageElement) -> list[Card] | None:
