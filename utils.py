@@ -45,10 +45,11 @@ def cost_of_deck(card_df: DataFrame) -> None:
     price = 0
 
     for index, row in card_names_group.iterrows():
-        logger.info(f"\x1b[38;5;93m{row['card_name']} \t\t {row['price']}\033[0m")
+        logger.info(f"\x1b[38;5;93m{row['card_name']} \n{row['price']}\033[0m")
+
         price += row['price']
 
-    logger.info(f"\x1b[38;5;208mEstimated total of ${price:.2f}")
+    logger.info(f"\x1b[38;5;208mLowest cost estimated total of ${price:.2f}")
 
 
 def find_card_frame(full_card_name: str) -> str:
