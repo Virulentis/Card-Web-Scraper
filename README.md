@@ -13,6 +13,7 @@ Note: if the websites change **some/all** of the program may break.
 - Scrapes data from three websites: Face to Face Games, Wizards Tower, and 401 Games.
 - Processes and cleans data using pandas.
 - Saves the scraped data into CSV files.
+- Provides the cheapest possible list price on completion
 
 ## Requirements
 
