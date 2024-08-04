@@ -29,7 +29,7 @@ def main():
     utils.cost_of_deck(df)
     df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
     df.to_csv(config.OUTPUT_PATH)
-    logger.info("Program finished.")
+    logger.info("\x1b[38;5;69mProgram finished.")
 
 
 if __name__ == "__main__":
