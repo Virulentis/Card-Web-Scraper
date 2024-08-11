@@ -23,12 +23,15 @@ def main():
 
     master_card_list += f2f_card_list + wiz_card_list + g401_card_list
 
-    df = pd.DataFrame(master_card_list)
-    logger.debug(df)
-    logger.info("Sorting dictionary")
-    utils.cost_of_deck(df)
-    df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
-    df.to_csv(config.OUTPUT_PATH)
+    if master_card_list:
+        df = pd.DataFrame(master_card_list)
+        logger.debug(df)
+        logger.info("Sorting dictionary")
+        utils.cost_of_deck(df)
+        df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
+        df.to_csv(config.OUTPUT_PATH)
+    else:
+        logger.info("\033[31;1;4mFailed to find.\033[0m")
     logger.info("\x1b[38;5;69mProgram finished.")
 
 
