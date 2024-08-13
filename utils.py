@@ -34,7 +34,7 @@ def text_to_list() -> list[str]:
     return key_list
 
 
-# TODO: fix issues with frames and card names that can be contained on another card.
+# TODO: fix issue with art cards being mentioned in set for WIZ.
 def cost_of_deck(card_df: DataFrame) -> None:
     """
     Pulls The first time a name is used and gets the price.
@@ -77,8 +77,11 @@ def find_card_frame(full_card_name: str) -> str:
     return res
 
 
-def run_search():
-    keyword_list = text_to_list()
+def run_search(temp):
+    if temp == "Full_Run":
+        keyword_list = text_to_list()
+    else:
+        keyword_list = [temp]
     master_card_list = []
     f2f_card_list = []
     wiz_card_list = []
