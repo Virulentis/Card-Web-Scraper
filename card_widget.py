@@ -2,7 +2,7 @@ import logging
 import threading
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout,
                                QWidget, QLabel, QCheckBox, QTabWidget, QTextEdit, \
-                               QGridLayout, QLineEdit)
+                               QGridLayout, QLineEdit, QHBoxLayout)
 import config
 import utils
 
@@ -21,7 +21,7 @@ def change_config(config_setting):
 
 
 def start_search():
-    t1 = threading.Thread(target=utils.run_search)
+    t1 = threading.Thread(target=utils.run_search, args=("Full_Run",))
     t1.start()
 
 
@@ -40,25 +40,11 @@ class CardWindow(QMainWindow):
         super().__init__()
         logger = logging.getLogger("Card_Logger")
 
+
         # window settings
         self.setWindowTitle("DEFINITELY NOT A VIERUS!!11!!1!!11!!!")
         self.setGeometry(200, 200, 400, 200)
         self.setLayout(QVBoxLayout())
-
-        search_button = QPushButton("Run!")
-
-        config_retailer = QLabel("config")
-        f2f = QCheckBox("Face to Face")
-        wiz = QCheckBox("Wizards Tower")
-        g401 = QCheckBox("401 Games")
-        allow_foil = QCheckBox("allow_foil")
-        allow_out_of_stock = QCheckBox("allow_out_of_stock")
-        f2f.stateChanged.connect(lambda: change_config("F2F"))
-        wiz.stateChanged.connect(lambda: change_config("WIZ"))
-        g401.stateChanged.connect(lambda: change_config("G401"))
-        allow_foil.stateChanged.connect(lambda: change_config("allow_foil"))
-        allow_out_of_stock.stateChanged.connect(lambda: change_config("allow_out_of_stock"))
-        search_button.clicked.connect(start_search)
 
         # logger instancing for gui
         self.logger_output = QTextEdit(self)
@@ -67,13 +53,45 @@ class CardWindow(QMainWindow):
         logger.addHandler(log_handler)
 
         # main page
+        type_run_layout = QHBoxLayout()
         run_layout = QVBoxLayout()
-        run_layout.addWidget(search_button)
+
+        self.quick_card_name = QLineEdit()
+        self.quick_card_name.setPlaceholderText("Enter single card here!")
+
+        search_button = QPushButton("Run!")
+        quick_run_button = QPushButton("Quick, Run!")
+
+        self.quick_card_name.returnPressed.connect(self.quick_search)
+        search_button.clicked.connect(start_search)
+        quick_run_button.clicked.connect(self.quick_search)
+
+        type_run_layout.addWidget(search_button)
+        type_run_layout.addWidget(quick_run_button)
+
+        run_layout.addWidget(self.quick_card_name)
+        run_layout.addLayout(type_run_layout)
         run_layout.addWidget(self.logger_output)
+
         run_container = QWidget()
         run_container.setLayout(run_layout)
 
         # config page
+        config_retailer = QLabel("config")
+        f2f = QCheckBox("Face to Face")
+        f2f.setChecked(True)
+        wiz = QCheckBox("Wizards Tower")
+        wiz.setChecked(True)
+        g401 = QCheckBox("401 Games")
+        g401.setChecked(True)
+        allow_foil = QCheckBox("allow_foil")
+        allow_out_of_stock = QCheckBox("allow_out_of_stock")
+        f2f.stateChanged.connect(lambda: change_config("F2F"))
+        wiz.stateChanged.connect(lambda: change_config("WIZ"))
+        g401.stateChanged.connect(lambda: change_config("G401"))
+        allow_foil.stateChanged.connect(lambda: change_config("allow_foil"))
+        allow_out_of_stock.stateChanged.connect(lambda: change_config("allow_out_of_stock"))
+
         config_layout = QVBoxLayout()
         config_layout.addWidget(config_retailer)
         config_layout.addWidget(f2f)
@@ -86,20 +104,20 @@ class CardWindow(QMainWindow):
 
         # input/output page
         io_layout = QGridLayout()
-        input_label = QLabel("Input Path (e.g. card_list/test.txt)")
+        input_label = QLabel("Input Path")
         self.input_path = QLineEdit()
-        output_label = QLabel("Output Path (e.g. result.csv)")
+        self.input_path.setPlaceholderText("default = input.txt")
+        output_label = QLabel("Output Path")
         self.output_path = QLineEdit()
+        self.output_path.setPlaceholderText("default = result.csv")
         self.input_path.returnPressed.connect(self.change_path_input)
         self.output_path.returnPressed.connect(self.change_path_output)
         self.resulting_label = QLabel("")
-
         io_layout.addWidget(input_label, 2, 0)
         io_layout.addWidget(self.input_path, 3, 0)
         io_layout.addWidget(output_label, 4, 0)
         io_layout.addWidget(self.output_path, 5, 0)
         io_layout.addWidget(self.resulting_label, 1, 0)
-
         io_container = QWidget()
         io_container.setLayout(io_layout)
 
@@ -117,4 +135,10 @@ class CardWindow(QMainWindow):
 
     def change_path_output(self):
         config.OUTPUT_PATH = self.output_path.text()
-        self.resulting_label.setText("Input changed! ")
+        self.resulting_label.setText("Input changed!")
+
+    def quick_search(self):
+        t1 = threading.Thread(target=utils.run_search, args=(self.quick_card_name.text(),))
+        self.quick_card_name.clear()
+        t1.start()
+
