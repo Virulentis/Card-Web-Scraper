@@ -52,7 +52,7 @@ def create_card_batch_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     card_name = re.sub(r"(?:\s*\(.*|\s* - .*)?", "", full_card_name)
     logger.debug(card_name)
 
-    if keyword != card_name:
+    if keyword.lower() != card_name.lower():
         return
 
     card_set = item.find_next(class_="category").text
