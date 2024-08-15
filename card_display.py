@@ -1,10 +1,11 @@
 import logging
+import os
 import threading
 
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout,
                                QWidget, QLabel, QCheckBox, QTabWidget, QTextEdit, \
-                               QGridLayout, QLineEdit, QHBoxLayout)
+                               QGridLayout, QLineEdit, QHBoxLayout, QSpacerItem, QSizePolicy)
 import config
 import utils
 
@@ -37,22 +38,22 @@ class QTextEditLogger(logging.Handler):
 class CardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        logger = logging.getLogger("Card_Logger")
+        self.logger = logging.getLogger("Card_Logger")
 
         # window settings
         self.setWindowTitle("Card Scraper V.0")
-        self.setGeometry(2000, 500, 250, 350)
+        self.setGeometry(2000, 500, 254, 350)
         self.setLayout(QVBoxLayout())
         card_icon = QIcon()
-        card_icon.addFile('card.png')
+        card_icon.addFile('card_mtg.ico')
         self.setWindowIcon(card_icon)
 
         # logger instancing for gui
         self.logger_output = QTextEdit(self)
         self.logger_output.setReadOnly(True)
         log_handler = QTextEditLogger(self.logger_output)
-        logger.addHandler(log_handler)
-        self.logger_output.setPlaceholderText("console information here!")
+        self.logger.addHandler(log_handler)
+        self.logger_output.setPlaceholderText("Console information is written here!")
 
         # main page
         type_run_layout = QHBoxLayout()
@@ -79,7 +80,7 @@ class CardWindow(QMainWindow):
         run_container.setLayout(run_layout)
 
         # config page
-        config_retailer = QLabel("config")
+
         f2f = QCheckBox("Face to Face")
         f2f.setChecked(True)
         wiz = QCheckBox("Wizards Tower")
@@ -96,34 +97,37 @@ class CardWindow(QMainWindow):
         allow_foil.stateChanged.connect(lambda: change_config("allow_foil"))
         allow_out_of_stock.stateChanged.connect(lambda: change_config("allow_out_of_stock"))
         output_to_csv.stateChanged.connect(lambda: change_config("output_to_csv"))
+        spacer = QSpacerItem(0, 30, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         config_layout = QVBoxLayout()
-        config_layout.addWidget(config_retailer)
         config_layout.addWidget(f2f)
         config_layout.addWidget(wiz)
         config_layout.addWidget(g401)
         config_layout.addWidget(allow_foil)
         config_layout.addWidget(allow_out_of_stock)
         config_layout.addWidget(output_to_csv)
+        config_layout.addItem(spacer)
         config_container = QWidget()
         config_container.setLayout(config_layout)
 
         # input/output page
-        io_layout = QGridLayout()
+        io_layout = QVBoxLayout()
         input_label = QLabel("Input Path")
         self.input_path = QLineEdit()
-        self.input_path.setPlaceholderText("default = input.txt")
+        self.input_path.setPlaceholderText("default = 'input.txt'")
         output_label = QLabel("Output Path")
         self.output_path = QLineEdit()
-        self.output_path.setPlaceholderText("default = result.csv")
+        self.output_path.setPlaceholderText("default = 'result.csv'")
         self.input_path.returnPressed.connect(self.change_path_input)
         self.output_path.returnPressed.connect(self.change_path_output)
         self.resulting_label = QLabel("")
-        io_layout.addWidget(input_label, 2, 0)
-        io_layout.addWidget(self.input_path, 3, 0)
-        io_layout.addWidget(output_label, 4, 0)
-        io_layout.addWidget(self.output_path, 5, 0)
-        io_layout.addWidget(self.resulting_label, 1, 0)
+        io_layout.addWidget(input_label)
+        io_layout.addWidget(self.input_path)
+        io_layout.addWidget(output_label)
+        io_layout.addWidget(self.output_path)
+        io_layout.addWidget(self.resulting_label)
+        io_layout.addItem(spacer)
+
         io_container = QWidget()
         io_container.setLayout(io_layout)
 
@@ -144,6 +148,8 @@ class CardWindow(QMainWindow):
         self.resulting_label.setText(f"Output changed to '{config.OUTPUT_PATH}'!")
 
     def quick_search(self) -> None:
+        if self.quick_card_name.text() == "":
+            return
         self.toggle_for_run(False)
         t1 = threading.Thread(target=self.run_search, args=(self.quick_card_name.text(),))
         self.quick_card_name.clear()
@@ -151,6 +157,9 @@ class CardWindow(QMainWindow):
         t1.start()
 
     def long_search(self) -> None:
+        if not os.path.exists(config.FILENAME):
+            self.logger.info("Missing file, cannot read.")
+            return
         self.toggle_for_run(False)
         t1 = threading.Thread(target=self.run_search, args=("Full_Run",))
         self.logger_output.clear()
