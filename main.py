@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication
 import utils
-from card_widget import CardWindow
+from card_display import CardWindow
 
 
 def init_window():
@@ -9,9 +9,12 @@ def init_window():
     window = CardWindow()
     window.show()
     sys.exit(app.exec())
+
+
 def main():
     utils.instantiate_logger()
     init_window()
+
 
 if __name__ == "__main__":
     main()
