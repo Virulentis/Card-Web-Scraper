@@ -48,11 +48,11 @@ def cost_of_deck(card_df: DataFrame) -> None:
     price = 0
 
     for index, row in card_names_group.iterrows():
-        logger.info(f"\x1b[38;5;93m{row['card_name']} \n{row['price']}\033[0m")
+        logger.info(f"{row['card_name']} \n{row['price']}")
 
         price += row['price']
 
-    logger.info(f"\x1b[38;5;208mLowest cost estimated total of ${price:.2f}")
+    logger.info(f"Lowest cost estimated total of ${price:.2f}")
 
 
 def find_card_frame(full_card_name: str) -> str:
@@ -77,7 +77,7 @@ def find_card_frame(full_card_name: str) -> str:
     return res
 
 
-def run_search(temp):
+def run_search(temp) -> None:
     if temp == "Full_Run":
         keyword_list = text_to_list()
     else:
@@ -99,13 +99,15 @@ def run_search(temp):
 
     master_card_list += f2f_card_list + wiz_card_list + g401_card_list
 
-    if master_card_list:
+    if master_card_list and config.OUTPUT_CSV:
         df = pd.DataFrame(master_card_list)
         logger.debug(df)
         logger.info("Sorting dictionary")
         cost_of_deck(df)
-        df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
+        df = df.sort_values(by=['card_name', 'price', 'is_foil']
+                               + (['condition'] if 'condition' in df.columns else []))
+
         df.to_csv(config.OUTPUT_PATH)
     else:
-        logger.info("\033[31;1;4mFailed to find.\033[0m")
-    logger.info("\x1b[38;5;69mProgram finished.")
+        logger.info("Failed to find.")
+    logger.info("Program finished.")
