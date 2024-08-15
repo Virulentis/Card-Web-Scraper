@@ -5,7 +5,8 @@ import threading
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout,
                                QWidget, QLabel, QCheckBox, QTabWidget, QTextEdit, \
-                               QGridLayout, QLineEdit, QHBoxLayout, QSpacerItem, QSizePolicy)
+                               QLineEdit, QHBoxLayout, QSpacerItem, QSizePolicy)
+
 import config
 import utils
 
