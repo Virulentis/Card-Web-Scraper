@@ -1,9 +1,10 @@
-import pandas as pd
-from pandas import DataFrame
 import logging
-import config
 import re
 
+import pandas as pd
+from pandas import DataFrame
+
+import config
 import web_interaction
 
 
@@ -34,7 +35,6 @@ def text_to_list() -> list[str]:
     return key_list
 
 
-# TODO: fix issue with art cards being mentioned in set for WIZ.
 def cost_of_deck(card_df: DataFrame) -> None:
     """
     Pulls The first time a name is used and gets the price.
@@ -44,12 +44,13 @@ def cost_of_deck(card_df: DataFrame) -> None:
     """
     logger = logging.getLogger("Card_Logger")
 
-    card_names_group = card_df.groupby('card_name')['price'].min().reset_index()
+    # card_names_group = card_df.groupby('card_name')['price'].min().reset_index()
+    idx = card_df.groupby('card_name')['price'].idxmin()
+    card_details = card_df.loc[idx].reset_index(drop=True)
     price = 0
 
-    for index, row in card_names_group.iterrows():
-        logger.info(f"{row['card_name']} \n{row['price']}")
-
+    for index, row in card_details.iterrows():
+        logger.info(f"{row['card_name']} \nPr: ${row['price']} Rt: {row['retailer']} Cd: {row['condition']}")
         price += row['price']
 
     logger.info(f"Lowest cost estimated total of ${price:.2f}")
@@ -95,19 +96,19 @@ def run_search(temp) -> None:
         wiz_card_list = web_interaction.find_retailer_pages(keyword_list, "WIZ")
 
     if config.IS_401_SCRAPE:
-        g401_card_list = web_interaction.find_retailer_pages(keyword_list, "G401")
+        g401_card_list = web_interaction.find_retailer_pages(keyword_list, "401G")
 
     master_card_list += f2f_card_list + wiz_card_list + g401_card_list
 
-    if master_card_list and config.OUTPUT_CSV:
+    if master_card_list:
+
         df = pd.DataFrame(master_card_list)
         logger.debug(df)
-        logger.info("Sorting dictionary")
         cost_of_deck(df)
-        df = df.sort_values(by=['card_name', 'price', 'is_foil']
-                               + (['condition'] if 'condition' in df.columns else []))
-
-        df.to_csv(config.OUTPUT_PATH)
+        if config.OUTPUT_CSV:
+            logger.info("Sorting dictionary")
+            df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
+            df.to_csv(config.OUTPUT_PATH)
     else:
         logger.info("Failed to find.")
     logger.info("Program finished.")
