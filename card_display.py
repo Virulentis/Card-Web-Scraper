@@ -1,5 +1,7 @@
 import logging
 import threading
+
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout,
                                QWidget, QLabel, QCheckBox, QTabWidget, QTextEdit, \
                                QGridLayout, QLineEdit, QHBoxLayout)
@@ -7,7 +9,7 @@ import config
 import utils
 
 
-def change_config(config_setting):
+def change_config(config_setting) -> None:
     if config_setting == "F2F":
         config.IS_F2F_SCRAPE = not config.IS_F2F_SCRAPE
     elif config_setting == "WIZ":
@@ -18,11 +20,8 @@ def change_config(config_setting):
         config.ALLOW_FOIL = not config.ALLOW_FOIL
     elif config_setting == "allow_out_of_stock":
         config.ALLOW_OUT_OF_STOCK = not config.ALLOW_OUT_OF_STOCK
-
-
-def start_search():
-    t1 = threading.Thread(target=utils.run_search, args=("Full_Run",))
-    t1.start()
+    elif config_setting == "output_to_csv":
+        config.OUTPUT_CSV = not config.OUTPUT_CSV
 
 
 class QTextEditLogger(logging.Handler):
@@ -40,17 +39,20 @@ class CardWindow(QMainWindow):
         super().__init__()
         logger = logging.getLogger("Card_Logger")
 
-
         # window settings
-        self.setWindowTitle("DEFINITELY NOT A VIERUS!!11!!1!!11!!!")
-        self.setGeometry(200, 200, 400, 200)
+        self.setWindowTitle("Card Scraper V.0")
+        self.setGeometry(2000, 500, 250, 350)
         self.setLayout(QVBoxLayout())
+        card_icon = QIcon()
+        card_icon.addFile('card.png')
+        self.setWindowIcon(card_icon)
 
         # logger instancing for gui
         self.logger_output = QTextEdit(self)
         self.logger_output.setReadOnly(True)
         log_handler = QTextEditLogger(self.logger_output)
         logger.addHandler(log_handler)
+        self.logger_output.setPlaceholderText("console information here!")
 
         # main page
         type_run_layout = QHBoxLayout()
@@ -59,15 +61,15 @@ class CardWindow(QMainWindow):
         self.quick_card_name = QLineEdit()
         self.quick_card_name.setPlaceholderText("Enter single card here!")
 
-        search_button = QPushButton("Run!")
-        quick_run_button = QPushButton("Quick, Run!")
+        self.search_button = QPushButton("Run!")
+        self.quick_run_button = QPushButton("Quick, Run!")
 
         self.quick_card_name.returnPressed.connect(self.quick_search)
-        search_button.clicked.connect(start_search)
-        quick_run_button.clicked.connect(self.quick_search)
+        self.search_button.clicked.connect(self.long_search)
+        self.quick_run_button.clicked.connect(self.quick_search)
 
-        type_run_layout.addWidget(search_button)
-        type_run_layout.addWidget(quick_run_button)
+        type_run_layout.addWidget(self.search_button)
+        type_run_layout.addWidget(self.quick_run_button)
 
         run_layout.addWidget(self.quick_card_name)
         run_layout.addLayout(type_run_layout)
@@ -84,13 +86,16 @@ class CardWindow(QMainWindow):
         wiz.setChecked(True)
         g401 = QCheckBox("401 Games")
         g401.setChecked(True)
-        allow_foil = QCheckBox("allow_foil")
-        allow_out_of_stock = QCheckBox("allow_out_of_stock")
+        allow_foil = QCheckBox("Allow foil")
+        allow_out_of_stock = QCheckBox("Allow out of stock")
+        output_to_csv = QCheckBox("Output to CSV")
+        output_to_csv.setChecked(True)
         f2f.stateChanged.connect(lambda: change_config("F2F"))
         wiz.stateChanged.connect(lambda: change_config("WIZ"))
         g401.stateChanged.connect(lambda: change_config("G401"))
         allow_foil.stateChanged.connect(lambda: change_config("allow_foil"))
         allow_out_of_stock.stateChanged.connect(lambda: change_config("allow_out_of_stock"))
+        output_to_csv.stateChanged.connect(lambda: change_config("output_to_csv"))
 
         config_layout = QVBoxLayout()
         config_layout.addWidget(config_retailer)
@@ -99,6 +104,7 @@ class CardWindow(QMainWindow):
         config_layout.addWidget(g401)
         config_layout.addWidget(allow_foil)
         config_layout.addWidget(allow_out_of_stock)
+        config_layout.addWidget(output_to_csv)
         config_container = QWidget()
         config_container.setLayout(config_layout)
 
@@ -129,16 +135,32 @@ class CardWindow(QMainWindow):
 
         self.setCentralWidget(tab_nav)
 
-    def change_path_input(self):
+    def change_path_input(self) -> None:
         config.FILENAME = self.input_path.text()
-        self.resulting_label.setText("Output changed!")
+        self.resulting_label.setText(f"Input changed to '{config.FILENAME}'!")
 
-    def change_path_output(self):
+    def change_path_output(self) -> None:
         config.OUTPUT_PATH = self.output_path.text()
-        self.resulting_label.setText("Input changed!")
+        self.resulting_label.setText(f"Output changed to '{config.OUTPUT_PATH}'!")
 
-    def quick_search(self):
-        t1 = threading.Thread(target=utils.run_search, args=(self.quick_card_name.text(),))
+    def quick_search(self) -> None:
+        self.toggle_for_run(False)
+        t1 = threading.Thread(target=self.run_search, args=(self.quick_card_name.text(),))
         self.quick_card_name.clear()
+        self.logger_output.clear()
         t1.start()
 
+    def long_search(self) -> None:
+        self.toggle_for_run(False)
+        t1 = threading.Thread(target=self.run_search, args=("Full_Run",))
+        self.logger_output.clear()
+        t1.start()
+
+    def run_search(self, temp: str) -> None:
+        utils.run_search(temp)
+        self.toggle_for_run(True)
+
+    def toggle_for_run(self, isRunning: bool) -> None:
+        self.quick_card_name.blockSignals(not isRunning)
+        self.search_button.setEnabled(isRunning)
+        self.quick_run_button.setEnabled(isRunning)
