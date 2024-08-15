@@ -51,6 +51,7 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
     res: Card = {
         'card_name': card_name,
         'card_set': card_set,
+        'condition': "",
         'is_foil': is_foil,
         'retailer': '401G',
         'stock': stock,
