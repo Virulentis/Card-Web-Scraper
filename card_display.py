@@ -1,12 +1,11 @@
 import logging
 import os
+import sys
 import threading
-
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout,
                                QWidget, QLabel, QCheckBox, QTabWidget, QTextEdit, \
                                QLineEdit, QHBoxLayout, QSpacerItem, QSizePolicy)
-
 import config
 import utils
 
@@ -39,17 +38,21 @@ class QTextEditLogger(logging.Handler):
 class CardWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.logger = logging.getLogger("Card_Logger")
+
+        # icon settings
+        if getattr(sys, 'frozen', False):
+            icon_path = os.path.join(sys._MEIPASS, 'card_mtg.ico')
+        else:
+            icon_path = "card_mtg.ico"
+        self.setWindowIcon(QIcon(icon_path))
 
         # window settings
         self.setWindowTitle("Card Scraper V.0")
-        self.setGeometry(2000, 500, 254, 350)
+        self.setGeometry(100, 100, 254, 350)
         self.setLayout(QVBoxLayout())
-        card_icon = QIcon()
-        card_icon.addFile('card_mtg.ico')
-        self.setWindowIcon(card_icon)
 
         # logger instancing for gui
+        self.logger = logging.getLogger("Card_Logger")
         self.logger_output = QTextEdit(self)
         self.logger_output.setReadOnly(True)
         log_handler = QTextEditLogger(self.logger_output)
@@ -81,7 +84,6 @@ class CardWindow(QMainWindow):
         run_container.setLayout(run_layout)
 
         # config page
-
         f2f = QCheckBox("Face to Face")
         f2f.setChecked(True)
         wiz = QCheckBox("Wizards Tower")
@@ -91,7 +93,6 @@ class CardWindow(QMainWindow):
         allow_foil = QCheckBox("Allow foil")
         allow_out_of_stock = QCheckBox("Allow out of stock")
         output_to_csv = QCheckBox("Output to CSV")
-        output_to_csv.setChecked(True)
         f2f.stateChanged.connect(lambda: change_config("F2F"))
         wiz.stateChanged.connect(lambda: change_config("WIZ"))
         g401.stateChanged.connect(lambda: change_config("G401"))
@@ -113,18 +114,17 @@ class CardWindow(QMainWindow):
 
         # input/output page
         io_layout = QVBoxLayout()
-        input_label = QLabel("Input Path")
+
         self.input_path = QLineEdit()
         self.input_path.setPlaceholderText("default = 'input.txt'")
-        output_label = QLabel("Output Path")
         self.output_path = QLineEdit()
         self.output_path.setPlaceholderText("default = 'result.csv'")
         self.input_path.returnPressed.connect(self.change_path_input)
         self.output_path.returnPressed.connect(self.change_path_output)
         self.resulting_label = QLabel("")
-        io_layout.addWidget(input_label)
+        io_layout.addWidget(QLabel("Input Path"))
         io_layout.addWidget(self.input_path)
-        io_layout.addWidget(output_label)
+        io_layout.addWidget(QLabel("Output Path"))
         io_layout.addWidget(self.output_path)
         io_layout.addWidget(self.resulting_label)
         io_layout.addItem(spacer)
@@ -136,7 +136,7 @@ class CardWindow(QMainWindow):
         tab_nav = QTabWidget()
         tab_nav.addTab(run_container, "Run")
         tab_nav.addTab(config_container, "Config")
-        tab_nav.addTab(io_container, "Input/Output")
+        tab_nav.addTab(io_container, "I/O path")
 
         self.setCentralWidget(tab_nav)
 
@@ -150,6 +150,7 @@ class CardWindow(QMainWindow):
 
     def quick_search(self) -> None:
         if self.quick_card_name.text() == "":
+            self.logger.info("No text entered in quick search. ")
             return
         self.toggle_for_run(False)
         t1 = threading.Thread(target=self.run_search, args=(self.quick_card_name.text(),))
