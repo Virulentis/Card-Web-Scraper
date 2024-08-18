@@ -1,9 +1,6 @@
 import logging
 import re
-
-import pandas as pd
 from pandas import DataFrame
-
 import config
 import web_interaction
 
@@ -102,7 +99,7 @@ def run_search(temp) -> None:
 
     if master_card_list:
 
-        df = pd.DataFrame(master_card_list)
+        df = DataFrame(master_card_list)
         logger.debug(df)
         cost_of_deck(df)
         if config.OUTPUT_CSV:
