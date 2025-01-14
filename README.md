@@ -30,21 +30,28 @@ Note: if the websites change **some/all** of the program may break.
 
 ### Step 1: Clone the Repository
 
-`git clone https://github.com/Virulentis/Card-Web-Scraper.git`
-
-`cd web-scraper`
+```bash 
+git clone https://github.com/Virulentis/Card-Web-Scraper.git
+cd web-scraper
+```
 
 ### Step 2: Set Up a Virtual Environment
 
-`python -m venv venv`
+```bash
+python -m venv venv
+```
 
 ### Step 3: Install Required Packages
 
-`pip install -r requirements.txt`
+```bash
+pip install -r requirements.txt
+```
 
 ### Step 4: Install Playwright Browsers
 
-`playwright install`
+```bash
+playwright install
+```
 
 ## Usage
 
@@ -66,7 +73,9 @@ FILENAME, OUTPUT_PATH:
 
 To run the web scraper, use the following command:
 
-`python card_scraper.py`
+```bash
+python card_scraper.py
+```
 
 
 ## 401 Note
