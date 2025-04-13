@@ -1,7 +1,8 @@
-from pandas import DataFrame
 import logging
-import config
 import re
+from pandas import DataFrame
+import config
+import web_interaction
 
 
 def instantiate_logger() -> logging:
@@ -31,7 +32,6 @@ def text_to_list() -> list[str]:
     return key_list
 
 
-# TODO: fix issues with frames and card names that can be contained on another card.
 def cost_of_deck(card_df: DataFrame) -> None:
     """
     Pulls The first time a name is used and gets the price.
@@ -41,15 +41,16 @@ def cost_of_deck(card_df: DataFrame) -> None:
     """
     logger = logging.getLogger("Card_Logger")
 
-    card_names_group = card_df.groupby('card_name')['price'].min().reset_index()
+    # card_names_group = card_df.groupby('card_name')['price'].min().reset_index()
+    idx = card_df.groupby('card_name')['price'].idxmin()
+    card_details = card_df.loc[idx].reset_index(drop=True)
     price = 0
 
-    for index, row in card_names_group.iterrows():
-        logger.info(f"\x1b[38;5;93m{row['card_name']} \n{row['price']}\033[0m")
-
+    for index, row in card_details.iterrows():
+        logger.info(f"{row['card_name']} \nPr: ${row['price']} Rt: {row['retailer']} Cd: {row['condition']}")
         price += row['price']
 
-    logger.info(f"\x1b[38;5;208mLowest cost estimated total of ${price:.2f}")
+    logger.info(f"Lowest cost estimated total of ${price:.2f}")
 
 
 def find_card_frame(full_card_name: str) -> str:
@@ -72,3 +73,39 @@ def find_card_frame(full_card_name: str) -> str:
             else:
                 res += f", {keyword}"
     return res
+
+
+def run_search(temp) -> None:
+    if temp == "Full_Run":
+        keyword_list = text_to_list()
+    else:
+        keyword_list = [temp]
+    master_card_list = []
+    f2f_card_list = []
+    wiz_card_list = []
+    g401_card_list = []
+    logger = logging.getLogger("Card_Logger")
+
+    if config.IS_F2F_SCRAPE:
+        f2f_card_list = web_interaction.find_retailer_pages(keyword_list, "F2F")
+
+    if config.IS_WIZ_SCRAPE:
+        wiz_card_list = web_interaction.find_retailer_pages(keyword_list, "WIZ")
+
+    if config.IS_401_SCRAPE:
+        g401_card_list = web_interaction.find_retailer_pages(keyword_list, "401G")
+
+    master_card_list += f2f_card_list + wiz_card_list + g401_card_list
+
+    if master_card_list:
+
+        df = DataFrame(master_card_list)
+        logger.debug(df)
+        cost_of_deck(df)
+        if config.OUTPUT_CSV:
+            logger.info("Sorting dictionary")
+            df = df.sort_values(by=['card_name', 'price', 'is_foil', 'condition'])
+            df.to_csv(config.OUTPUT_PATH)
+    else:
+        logger.info("Failed to find.")
+    logger.info("Program finished.")

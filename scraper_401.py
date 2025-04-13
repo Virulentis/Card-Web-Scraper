@@ -28,7 +28,7 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
     card_name = clean_string(full_card_name)
     logger.debug(card_name)
 
-    if keyword != card_name:
+    if keyword.lower() != card_name.lower():
         return
     if item.find(class_="in-stock") is not None:
         stock = 1
@@ -51,6 +51,7 @@ def create_card_401(keyword: str, item: PageElement) -> Card | None:
     res: Card = {
         'card_name': card_name,
         'card_set': card_set,
+        'condition': "",
         'is_foil': is_foil,
         'retailer': '401G',
         'stock': stock,

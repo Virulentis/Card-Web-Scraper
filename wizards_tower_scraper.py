@@ -6,36 +6,6 @@ import config
 import utils
 from classes import Card, CardCondition
 
-"""
-F2F
-- Borderless
-- OVERSIZED
-- Serial Numbered
-- Etched Foil
-- Extended Art
-
-401 
-- Promo Pack
-- Extended Art
-- Borderless
- (Etched)
- (Halo Foil)
-- Extended Art
-
-WIZ
-- Borderless
-(Showcase)
-Oversized Foil - Atraxa, Praetors' Voice
-(Showcase) - Halo Foil
-Art Card
-- Gilded Foil
-- Foil Etched
-- Oil Slick Raised Foil
-- Extended Art
-
-
-"""
-
 
 def create_card_batch_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     """
@@ -52,16 +22,17 @@ def create_card_batch_WIZ(keyword: str, item: PageElement) -> list[Card] | None:
     card_name = re.sub(r"(?:\s*\(.*|\s* - .*)?", "", full_card_name)
     logger.debug(card_name)
 
-    if keyword != card_name:
+    if keyword.lower() != card_name.lower() or "- Art Series" in full_card_name:
         return
 
-    card_set = item.find_next(class_="category").text
     if " Foil" in full_card_name:
         if not config.ALLOW_FOIL:
             return
         is_foil = True
     else:
         is_foil = False
+
+    card_set = item.find_next(class_="category").text
 
     frame = utils.find_card_frame(full_card_name)
 

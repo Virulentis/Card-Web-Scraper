@@ -7,7 +7,6 @@ from scraper_401 import create_card_401
 from wizards_tower_scraper import create_card_batch_WIZ
 
 
-# TODO: F2F Find a better page.wait_for_selector than .hawkPrice as it is inconsistent
 # TODO: G401 Figure out how to deal with redirects.
 
 def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | None:
@@ -48,7 +47,7 @@ def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | N
                     page.wait_for_selector('.inner',
                                            timeout=5000)
 
-                elif retailer == "G401":
+                elif retailer == "401G":
                     page.goto(
                         "https://store.401games.ca/pages/search-results?q=" + keyword +
                         "&filters=Category,Magic:+The+Gathering+Singles",
@@ -60,7 +59,7 @@ def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | N
                     return
 
             except:
-                logger.info(f"\033[31;1;4m{keyword}: failed, retailer {retailer}\033[0m")
+                logger.info(f"{keyword}: failed, retailer {retailer}")
                 continue
 
             if retailer == "F2F":
@@ -83,7 +82,7 @@ def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | N
                     if card_batch is not None:
                         res += card_batch
 
-            elif retailer == "G401":
+            elif retailer == "401G":
                 html = page.inner_html('#products-grid')
 
                 soup = BeautifulSoup(html, 'html5lib')
@@ -95,7 +94,7 @@ def find_retailer_pages(keyword_list: list[str], retailer: str) -> list[Any] | N
             else:
                 return
 
-        logger.info(f"finished {retailer}")
+        logger.info(f"Finished {retailer}")
         browser.close()
 
     return res
