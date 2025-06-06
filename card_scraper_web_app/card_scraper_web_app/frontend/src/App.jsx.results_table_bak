@@ -1,0 +1,299 @@
+import React, { useState, useEffect } from 'react';
+import { ThemeProvider, useTheme } from './components/theme-provider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import * as api from './services/api'; // Import API service
+
+function AppContent() {
+  const { theme, setTheme } = useTheme();
+
+  // State for "Run" tab
+  const [quickSearchCardName, setQuickSearchCardName] = useState('');
+  const [fullSearchCardList, setFullSearchCardList] = useState('');
+  const [scrapeResults, setScrapeResults] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // State for "Config" tab
+  const [config, setConfig] = useState({
+    ALLOW_FOIL: false,
+    ALLOW_OUT_OF_STOCK: false,
+    IS_F2F_SCRAPE: true,
+    IS_WIZ_SCRAPE: true,
+    IS_401_SCRAPE: true,
+  });
+
+  // Load initial config
+  useEffect(() => {
+    const fetchConfig = async () => {
+      try {
+        addLog('Fetching initial configuration...');
+        const fetchedConfig = await api.getConfig();
+        setConfig(fetchedConfig);
+        addLog('Configuration loaded successfully.');
+      } catch (error) {
+        addLog(`Error fetching config: ${error.message}`);
+        console.error("Error fetching config:", error);
+      }
+    };
+    fetchConfig();
+  }, []);
+
+  const addLog = (message) => {
+    setLogs(prevLogs => [`[${new Date().toLocaleTimeString()}] ${message}`, ...prevLogs.slice(0, 99)]); // Keep last 100 logs
+  };
+
+  const handleQuickSearch = async () => {
+    if (!quickSearchCardName.trim()) {
+      addLog('Quick Search: Card name is empty.');
+      return;
+    }
+    addLog(`Quick Search started for: "${quickSearchCardName}"`);
+    setIsLoading(true);
+    setScrapeResults([]);
+    try {
+      const result = await api.scrapeQuick(quickSearchCardName.trim());
+      addLog(`Quick Search for "${quickSearchCardName}" completed. Found ${result.data.length} items.`);
+      setScrapeResults(result.data);
+    } catch (error) {
+      addLog(`Quick Search error: ${error.message}`);
+      console.error("Quick Search error:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const handleFullSearch = async () => {
+    const cardListArray = fullSearchCardList.split('\n').map(name => name.trim()).filter(name => name);
+    if (cardListArray.length === 0) {
+      addLog('Full Search: Card list is empty.');
+      return;
+    }
+    addLog(`Full Search started for ${cardListArray.length} cards.`);
+    setIsLoading(true);
+    setScrapeResults([]);
+    try {
+      const result = await api.scrapeFull(cardListArray);
+      addLog(`Full Search completed. Found ${result.data.length} total items.`);
+      setScrapeResults(result.data);
+    } catch (error) {
+      addLog(`Full Search error: ${error.message}`);
+      console.error("Full Search error:", error);
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeckCostAnalysis = async () => {
+    if (scrapeResults.length === 0) {
+      addLog('Deck Cost Analysis: No scraped data available to analyze.');
+      return;
+    }
+    addLog('Deck Cost Analysis started...');
+    setIsLoading(true);
+    try {
+      const analysis = await api.analyzeDeckCost(scrapeResults);
+      addLog(`Deck Cost Analysis completed. Total minimum cost: $${analysis.totalCost}. Unique cards: ${analysis.uniqueCardCount}.`);
+      // Display analysis in a more structured way later
+      // For now, just log it. Could add to scrapeResults or a new state.
+      console.log("Deck Cost Analysis:", analysis);
+    } catch (error) {
+      addLog(`Deck Cost Analysis error: ${error.message}`);
+      console.error("Deck Cost Analysis error:", error);
+    }
+    setIsLoading(false);
+  };
+
+
+  const handleConfigChange = async (key, value) => {
+    const newConfig = { ...config, [key]: value };
+    setConfig(newConfig);
+    try {
+      addLog(`Updating config: ${key} = ${value}`);
+      await api.updateConfig({ [key]: value }); // Send only the changed key-value
+      addLog('Configuration updated successfully on backend.');
+    } catch (error) {
+      addLog(`Error updating config on backend: ${error.message}`);
+      console.error("Error updating config:", error);
+      // Optionally revert config change if backend update fails
+      // const oldConfig = await api.getConfig(); setConfig(oldConfig);
+    }
+  };
+
+  return (
+    <div className="container mx-auto p-4">
+      <header className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">MTG Card Scraper</h1>
+        <Button variant="outline" size="icon" onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+          {/* Placeholder for an icon, e.g., Sun/Moon from lucide-react */}
+          {theme === 'light' ? 'D' : 'L'}
+        </Button>
+      </header>
+
+      <Tabs defaultValue="run" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="run">Run Scrapers</TabsTrigger>
+          <TabsTrigger value="config">Configuration</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="run" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scrape Card Data</CardTitle>
+              <CardDescription>Enter card names to search across enabled retailers.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="quickSearch">Quick Search (Single Card)</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    id="quickSearch"
+                    placeholder="e.g., Sol Ring"
+                    value={quickSearchCardName}
+                    onChange={(e) => setQuickSearchCardName(e.target.value)}
+                    disabled={isLoading}
+                  />
+                  <Button onClick={handleQuickSearch} disabled={isLoading}>
+                    {isLoading ? 'Searching...' : 'Search'}
+                  </Button>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label htmlFor="fullSearch">Full Search (List of Cards, one per line)</Label>
+                <Textarea
+                  id="fullSearch"
+                  placeholder="Sol Ring\nLightning Bolt\n..."
+                  value={fullSearchCardList}
+                  onChange={(e) => setFullSearchCardList(e.target.value)}
+                  rows={5}
+                  disabled={isLoading}
+                />
+                <Button onClick={handleFullSearch} disabled={isLoading} className="mt-2">
+                  {isLoading ? 'Searching List...' : 'Search List'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardHeader className="flex flex-row justify-between items-center">
+                <CardTitle>Results</CardTitle>
+                {scrapeResults.length > 0 && (
+                    <Button onClick={handleDeckCostAnalysis} disabled={isLoading || scrapeResults.length === 0} variant="outline">
+                        Analyze Deck Cost
+                    </Button>
+                )}
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-72 w-full rounded-md border p-4">
+                {isLoading && <p>Loading results...</p>}
+                {!isLoading && scrapeResults.length === 0 && <p>No results yet. Run a search.</p>}
+                {!isLoading && scrapeResults.length > 0 && (
+                  <div className="space-y-2">
+                    {scrapeResults.map((card, index) => (
+                      <Card key={index} className="p-2">
+                        <p className="font-semibold">{card.card_name} - {card.card_set}</p>
+                        <p>Retailer: {card.retailer}, Price: ${card.price.toFixed(2)}, Stock: {card.stock}</p>
+                        <p>Condition: {card.condition}, Foil: {card.is_foil ? 'Yes' : 'No'}, Frame: {card.frame || 'N/A'}</p>
+                        {card.link && <a href={card.link} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline text-sm">View on site</a>}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="config" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Settings</CardTitle>
+              <CardDescription>Configure scraper behavior and retailer options.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <Label htmlFor="allowFoil" className="flex flex-col space-y-1">
+                  <span>Allow Foil Cards</span>
+                  <span className="font-normal leading-snug text-muted-foreground">
+                    Include foil versions of cards in results.
+                  </span>
+                </Label>
+                <Switch
+                  id="allowFoil"
+                  checked={config.ALLOW_FOIL}
+                  onCheckedChange={(value) => handleConfigChange('ALLOW_FOIL', value)}
+                />
+              </div>
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <Label htmlFor="allowOOS" className="flex flex-col space-y-1">
+                  <span>Allow Out of Stock</span>
+                   <span className="font-normal leading-snug text-muted-foreground">
+                    Include cards that are currently out of stock.
+                  </span>
+                </Label>
+                <Switch
+                  id="allowOOS"
+                  checked={config.ALLOW_OUT_OF_STOCK}
+                  onCheckedChange={(value) => handleConfigChange('ALLOW_OUT_OF_STOCK', value)}
+                />
+              </div>
+              <Separator />
+              <h3 className="text-md font-medium">Retailers</h3>
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <Label htmlFor="enableF2F">FaceToFace Games</Label>
+                <Switch
+                  id="enableF2F"
+                  checked={config.IS_F2F_SCRAPE}
+                  onCheckedChange={(value) => handleConfigChange('IS_F2F_SCRAPE', value)}
+                />
+              </div>
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <Label htmlFor="enableWIZ">Wizards Tower</Label>
+                <Switch
+                  id="enableWIZ"
+                  checked={config.IS_WIZ_SCRAPE}
+                  onCheckedChange={(value) => handleConfigChange('IS_WIZ_SCRAPE', value)}
+                />
+              </div>
+              <div className="flex items-center justify-between p-2 border rounded-md">
+                <Label htmlFor="enable401G">401 Games</Label>
+                <Switch
+                  id="enable401G"
+                  checked={config.IS_401_SCRAPE}
+                  onCheckedChange={(value) => handleConfigChange('IS_401_SCRAPE', value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      <Card className="mt-4">
+        <CardHeader><CardTitle>Logs</CardTitle></CardHeader>
+        <CardContent>
+          <ScrollArea className="h-40 w-full rounded-md border p-2 text-sm">
+            {logs.map((log, index) => <p key={index}>{log}</p>)}
+          </ScrollArea>
+        </CardContent>
+      </Card>
+
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+export default App;
