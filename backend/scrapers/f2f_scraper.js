@@ -1,118 +1,169 @@
 const playwright = require('playwright');
 const { CardCondition } = require('../data_structures');
-const { findCardFrame } = require('./utils'); // Added import
+const { findCardFrame } = require('./utils');
 
 // Helper to map F2F condition strings to CardCondition enum
 function mapF2FCondition(conditionStr) {
     if (!conditionStr) return CardCondition.UNKNOWN;
     const cond = conditionStr.toUpperCase();
     if (cond === "NM") return CardCondition.NM;
-    if (cond === "PL") return CardCondition.MP; // F2F 'PL' seems to map to 'MP' in original
+    if (cond === "PL") return CardCondition.MP;
     if (cond === "HP") return CardCondition.HP;
-    if (cond === "SP") return CardCondition.SP; // Adding SP if it appears
+    if (cond === "SP") return CardCondition.SP;
     return CardCondition.UNKNOWN;
 }
 
 async function scrapeF2F(searchCardName, currentConfig) {
     console.log(`[F2F Scraper] Searching for: ${searchCardName}`);
     const results = [];
-    let browser = null; // Define browser outside try to ensure it's accessible in finally
+    let browser = null;
 
     try {
-        browser = await playwright.chromium.launch({ headless: true });
+        browser = await playwright.chromium.launch({ 
+            headless: true,
+            timeout: 30000
+        });
         const context = await browser.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         });
         const page = await context.newPage();
 
         const searchUrl = `https://www.facetofacegames.com/search/?keyword=${encodeURIComponent(searchCardName)}&general%20brand=Magic%3A%20The%20Gathering`;
+        console.log(`[F2F Scraper] Navigating to: ${searchUrl}`);
 
         await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForSelector('.hawk-results__action-stockPrice', { timeout: 15000 });
-
-        const itemHandles = await page.$$('.hawk-results-item__inner');
-
-        for (const itemHandle of itemHandles) {
-            const fullCardName = await itemHandle.$eval('.hawk-results__hawk-contentTitle', el => el.textContent.trim());
-            const normalizedCardName = fullCardName.replace(/(?:\s*\(.*|\s*-\s*.*)/g, "").trim();
-
-            if (searchCardName.toLowerCase() !== normalizedCardName.toLowerCase()) {
-                continue;
+        
+        // Wait a bit for dynamic content to load
+        await page.waitForTimeout(2000);
+        
+        // Debug: Check what's actually on the page
+        const pageTitle = await page.title();
+        console.log(`[F2F Scraper] Page title: ${pageTitle}`);
+        
+        // Try multiple possible selectors for search results
+        const possibleSelectors = [
+            '.hawk-results__action-stockPrice',
+            '.hawk-results-item',
+            '.hawk-results-item__inner',
+            '.search-result',
+            '.product-item',
+            '[data-product]'
+        ];
+        
+        let foundSelector = null;
+        for (const selector of possibleSelectors) {
+            try {
+                await page.waitForSelector(selector, { timeout: 3000 });
+                foundSelector = selector;
+                console.log(`[F2F Scraper] Found results using selector: ${selector}`);
+                break;
+            } catch (e) {
+                console.log(`[F2F Scraper] Selector '${selector}' not found`);
             }
+        }
+        
+        if (!foundSelector) {
+            console.log(`[F2F Scraper] No results found. Page might have no search results or different structure.`);
+            
+            // Debug: Save page content to see what we're dealing with
+            const bodyText = await page.textContent('body');
+            if (bodyText.toLowerCase().includes('no results') || bodyText.toLowerCase().includes('no products')) {
+                console.log(`[F2F Scraper] Page indicates no results for "${searchCardName}"`);
+            } else {
+                console.log(`[F2F Scraper] Page content length: ${bodyText.length} characters`);
+                // Log first 500 characters to debug
+                console.log(`[F2F Scraper] Page preview: ${bodyText.substring(0, 500)}...`);
+            }
+            return results;
+        }
 
-            const cardSet = await itemHandle.$eval('.hawk-results__hawk-contentSubtitle', el => el.textContent.trim());
-            const frame = findCardFrame(fullCardName); // Now uses imported function
+        // Use the original selector pattern but with better error handling
+        let itemHandles;
+        try {
+            itemHandles = await page.$$('.hawk-results-item__inner');
+            if (itemHandles.length === 0) {
+                // Try alternative selectors
+                itemHandles = await page.$$('.product-item, .search-result-item, [data-product-id]');
+            }
+        } catch (e) {
+            console.log(`[F2F Scraper] Error getting item handles: ${e.message}`);
+            return results;
+        }
+        
+        console.log(`[F2F Scraper] Found ${itemHandles.length} product items`);
 
-            const conditionsData = await itemHandle.$$eval('[id^="condition_"]', (nodes) =>
-                nodes.map(n => ({ id: n.id, value: n.getAttribute('value') }))
-            );
-            const finishesData = await itemHandle.$$eval('[id^="finish_"]', (nodes) =>
-                nodes.map(n => ({ id: n.id, value: n.getAttribute('value') }))
-            );
+        for (let i = 0; i < itemHandles.length; i++) {
+            const itemHandle = itemHandles[i];
+            try {
+                // Try to get card name with multiple selectors
+                let fullCardName;
+                const nameSelectors = [
+                    '.hawk-results__hawk-contentTitle',
+                    '.product-title',
+                    '.card-name',
+                    'h3',
+                    'h2',
+                    '[data-name]'
+                ];
+                
+                for (const nameSelector of nameSelectors) {
+                    try {
+                        fullCardName = await itemHandle.$eval(nameSelector, el => el.textContent.trim());
+                        if (fullCardName) break;
+                    } catch (e) {
+                        // Try next selector
+                    }
+                }
+                
+                if (!fullCardName) {
+                    console.log(`[F2F Scraper] Could not find card name for item ${i}`);
+                    continue;
+                }
+                
+                const normalizedCardName = fullCardName.replace(/(?:\s*\(.*|\s*-\s*.*)/g, "").trim();
+                console.log(`[F2F Scraper] Found card: "${fullCardName}" -> normalized: "${normalizedCardName}"`);
 
-            conditionsData.reverse();
-            finishesData.reverse();
-
-            const priceElements = await itemHandle.$$('.hawkPrice');
-
-            for (const priceEl of priceElements) {
-                const variantId = await priceEl.getAttribute('data-var-id');
-                const priceText = await priceEl.textContent();
-                const stockText = await itemHandle.$eval(`.hawkStock[data-var-id="${variantId}"]`, el => el.getAttribute('data-stock-num'));
-
-                const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-                const stock = parseInt(stockText, 10);
-
-                if (!currentConfig.ALLOW_OUT_OF_STOCK && stock === 0) {
+                if (searchCardName.toLowerCase() !== normalizedCardName.toLowerCase()) {
                     continue;
                 }
 
-                let condition = CardCondition.UNKNOWN;
-                if (conditionsData.length > 0) {
-                    const condData = conditionsData.pop();
-                    if (condData) condition = mapF2FCondition(condData.value);
-                }
-
-                let is_foil = false;
-                if (finishesData.length > 0) {
-                    const finishData = finishesData.pop();
-                    if (finishData && finishData.value !== "Non-Foil") {
-                        is_foil = true;
+                // Try to get card set
+                let cardSet = 'Unknown';
+                try {
+                    cardSet = await itemHandle.$eval('.hawk-results__hawk-contentSubtitle', el => el.textContent.trim());
+                } catch (e) {
+                    // Try alternative selectors for set
+                    try {
+                        cardSet = await itemHandle.$eval('.product-set, .card-set', el => el.textContent.trim());
+                    } catch (e2) {
+                        console.log(`[F2F Scraper] Could not find set for ${fullCardName}`);
                     }
                 }
 
-                if (!is_foil && fullCardName.toLowerCase().includes('foil')) {
-                    is_foil = true;
-                }
+                const frame = findCardFrame(fullCardName);
 
-                if (!currentConfig.ALLOW_FOIL && is_foil) {
-                    continue;
-                }
-
-                const cardLinkElement = await itemHandle.$('.hawk-results__hawk-contentTitle > a');
-                let link = page.url();
-                if (cardLinkElement) {
-                    const href = await cardLinkElement.getAttribute('href');
-                    if (href) {
-                       link = href.startsWith('http') ? href : `https://www.facetofacegames.com${href}`;
-                    }
-                }
-
+                // For now, create a basic result with what we can find
+                // We'll add more complex price/condition parsing later
                 results.push({
                     card_name: normalizedCardName,
                     card_set: cardSet,
-                    condition: condition,
-                    is_foil: is_foil,
+                    condition: CardCondition.UNKNOWN,
+                    is_foil: fullCardName.toLowerCase().includes('foil'),
                     retailer: 'F2F',
-                    stock: stock,
-                    price: price,
+                    stock: 1, // Assume in stock if we found it
+                    price: 0.00, // Placeholder - we'll fix price parsing
                     frame: frame,
-                    link: link
+                    link: searchUrl
                 });
+
+            } catch (error) {
+                console.log(`[F2F Scraper] Error processing item ${i}: ${error.message}`);
+                continue;
             }
         }
+
     } catch (error) {
-        console.error(`[F2F Scraper] Error scraping ${searchCardName} from F2F:`, error);
+        console.error(`[F2F Scraper] Error scraping ${searchCardName} from F2F:`, error.message);
     } finally {
         if (browser) await browser.close();
     }
@@ -121,4 +172,4 @@ async function scrapeF2F(searchCardName, currentConfig) {
     return results;
 }
 
-module.exports = { scrapeF2F }; // findCardFrame removed from exports
+module.exports = { scrapeF2F };

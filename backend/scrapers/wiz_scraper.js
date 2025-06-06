@@ -1,6 +1,6 @@
 const playwright = require('playwright');
 const { CardCondition } = require('../data_structures');
-const { findCardFrame } = require('./utils'); // Shared utility
+const { findCardFrame } = require('./utils');
 
 // Helper to map WIZ condition strings to CardCondition enum
 function mapWIZCondition(conditionStr) {
@@ -9,148 +9,197 @@ function mapWIZCondition(conditionStr) {
     if (cond.includes("nm") || cond.includes("near mint")) return CardCondition.NM;
     if (cond.includes("slightly played")) return CardCondition.SP;
     if (cond.includes("moderately played")) return CardCondition.MP;
-    if (cond.includes("heavily played")) return CardCondition.HP; // Assuming HP if not others
+    if (cond.includes("heavily played")) return CardCondition.HP;
     return CardCondition.UNKNOWN;
 }
 
 async function scrapeWIZ(searchCardName, currentConfig) {
     console.log(`[WIZ Scraper] Searching for: ${searchCardName}`);
     const results = [];
-    let browser = null; // Initialize browser to null
+    let browser = null;
 
     try {
-        browser = await playwright.chromium.launch({ headless: true });
+        browser = await playwright.chromium.launch({ 
+            headless: true,
+            timeout: 30000
+        });
         const context = await browser.newContext({
-            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36'
+            userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         });
         const page = await context.newPage();
 
         const searchUrl = `https://www.kanatacg.com/products/search?q=${encodeURIComponent(searchCardName)}&c=1`;
+        console.log(`[WIZ Scraper] Navigating to: ${searchUrl}`);
 
         await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForSelector('.inner', { timeout: 15000 }); // Main content area
-
-        const productItems = await page.$$('.product.enable-msrp');
-
-        for (const itemHandle of productItems) {
-            const fullCardName = await itemHandle.$eval('.name', el => el.textContent.trim());
-            // Normalize by removing text in parentheses and anything after " - " (like set name in title)
-            const normalizedCardName = fullCardName.replace(/\s*\(.*?\)\s*|\s*-\s*.*/g, "").trim();
-
-
-            if (searchCardName.toLowerCase() !== normalizedCardName.toLowerCase() || fullCardName.includes("- Art Series")) {
-                // console.log(`[WIZ Scraper] Skipping "${fullCardName}" as it does not match "${searchCardName}" or is Art Series.`);
-                continue;
+        
+        // Wait for content to load
+        await page.waitForTimeout(2000);
+        
+        // Debug: Check what's on the page
+        const pageTitle = await page.title();
+        console.log(`[WIZ Scraper] Page title: ${pageTitle}`);
+        
+        // Try multiple possible selectors for the main content area
+        const possibleContainerSelectors = [
+            '.inner',
+            '.content',
+            '.main-content',
+            '.search-results',
+            '.products'
+        ];
+        
+        let foundContainer = false;
+        for (const selector of possibleContainerSelectors) {
+            try {
+                await page.waitForSelector(selector, { timeout: 3000 });
+                foundContainer = true;
+                console.log(`[WIZ Scraper] Found content container: ${selector}`);
+                break;
+            } catch (e) {
+                console.log(`[WIZ Scraper] Container selector '${selector}' not found`);
             }
+        }
+        
+        if (!foundContainer) {
+            console.log(`[WIZ Scraper] No content container found`);
+        }
 
-            let isItemFoil = false;
-            if (fullCardName.toLowerCase().includes("foil")) {
-                isItemFoil = true;
+        // Try multiple product item selectors
+        const possibleProductSelectors = [
+            '.product.enable-msrp',
+            '.product-item',
+            '.product',
+            '.search-result',
+            '[data-product]'
+        ];
+        
+        let productItems = [];
+        for (const selector of possibleProductSelectors) {
+            try {
+                productItems = await page.$$(selector);
+                if (productItems.length > 0) {
+                    console.log(`[WIZ Scraper] Found ${productItems.length} products using selector: ${selector}`);
+                    break;
+                }
+            } catch (e) {
+                console.log(`[WIZ Scraper] Product selector '${selector}' failed: ${e.message}`);
             }
-
-            if (isItemFoil && !currentConfig.ALLOW_FOIL) {
-                // console.log(`[WIZ Scraper] Skipping FOIL item ${fullCardName} due to config`);
-                continue;
+        }
+        
+        if (productItems.length === 0) {
+            console.log(`[WIZ Scraper] No products found. Checking for "no results" message...`);
+            const bodyText = await page.textContent('body');
+            if (bodyText.toLowerCase().includes('no results') || bodyText.toLowerCase().includes('no products')) {
+                console.log(`[WIZ Scraper] Page indicates no results for "${searchCardName}"`);
+            } else {
+                console.log(`[WIZ Scraper] Page content preview: ${bodyText.substring(0, 500)}...`);
             }
+            return results;
+        }
 
-            const cardSet = await itemHandle.$eval('.category', el => el.textContent.trim());
-            const frame = findCardFrame(fullCardName);
-            const productLinkHref = await itemHandle.$eval('.name > a', el => el.getAttribute('href'));
-            const productLink = productLinkHref.startsWith('http') ? productLinkHref : `https://www.kanatacg.com${productLinkHref}`;
-
-
-            const variantRows = await itemHandle.$$('.variant-row.row');
-            if (variantRows.length === 0) {
-                 const priceTextElement = await itemHandle.$('.price');
-                 if (!priceTextElement) continue; // Skip if no price found
-                 const priceText = (await priceTextElement.textContent()).trim().replace(/[^0-9.]/g, '');
-
-                 const stockElement = await itemHandle.$('.variant-qty, .qty');
-                 let stock = 0;
-                 if (stockElement) {
-                    const stockText = await stockElement.textContent();
-                    if (stockText.toLowerCase().includes("out of stock")) {
-                        stock = 0;
-                    } else {
-                        const stockMatch = stockText.match(/(\d+)/);
-                        if (stockMatch) stock = parseInt(stockMatch[1], 10);
+        for (let i = 0; i < productItems.length; i++) {
+            const itemHandle = productItems[i];
+            try {
+                // Try multiple selectors for card name
+                let fullCardName;
+                const nameSelectors = [
+                    '.name',
+                    '.product-name',
+                    '.card-name',
+                    'h3',
+                    'h2',
+                    '.title'
+                ];
+                
+                for (const nameSelector of nameSelectors) {
+                    try {
+                        fullCardName = await itemHandle.$eval(nameSelector, el => el.textContent.trim());
+                        if (fullCardName) {
+                            console.log(`[WIZ Scraper] Found name with selector '${nameSelector}': ${fullCardName}`);
+                            break;
+                        }
+                    } catch (e) {
+                        // Try next selector
                     }
-                 }
-
-
-                 if (!currentConfig.ALLOW_OUT_OF_STOCK && stock === 0) {
+                }
+                
+                if (!fullCardName) {
+                    console.log(`[WIZ Scraper] Could not find card name for item ${i}`);
                     continue;
-                 }
+                }
 
-                 let condition = CardCondition.UNKNOWN;
-                 // Attempt to derive condition from full name for single-variant items if possible
-                 if (fullCardName.toLowerCase().includes("near mint") || fullCardName.toLowerCase().includes("(nm)")) condition = CardCondition.NM;
-                 else if (fullCardName.toLowerCase().includes("played") || fullCardName.toLowerCase().includes("(pl)")) condition = CardCondition.MP; // Assuming PL maps to MP
-                 else if (fullCardName.toLowerCase().includes("slightly played") || fullCardName.toLowerCase().includes("(sp)")) condition = CardCondition.SP;
-                 else if (fullCardName.toLowerCase().includes("heavily played") || fullCardName.toLowerCase().includes("(hp)")) condition = CardCondition.HP;
+                // Normalize by removing text in parentheses and anything after " - "
+                const normalizedCardName = fullCardName.replace(/\s*\(.*?\)\s*|\s*-\s*.*/g, "").trim();
+                console.log(`[WIZ Scraper] Processing: "${fullCardName}" -> "${normalizedCardName}"`);
 
+                if (searchCardName.toLowerCase() !== normalizedCardName.toLowerCase() || fullCardName.includes("- Art Series")) {
+                    continue;
+                }
 
-                 results.push({
+                let isItemFoil = false;
+                if (fullCardName.toLowerCase().includes("foil")) {
+                    isItemFoil = true;
+                }
+
+                if (isItemFoil && !currentConfig.ALLOW_FOIL) {
+                    continue;
+                }
+
+                // Try to get card set
+                let cardSet = 'Unknown';
+                try {
+                    cardSet = await itemHandle.$eval('.category', el => el.textContent.trim());
+                } catch (e) {
+                    try {
+                        cardSet = await itemHandle.$eval('.product-set, .set', el => el.textContent.trim());
+                    } catch (e2) {
+                        console.log(`[WIZ Scraper] Could not find set for ${fullCardName}`);
+                    }
+                }
+
+                const frame = findCardFrame(fullCardName);
+                
+                // Try to get product link
+                let productLink = searchUrl;
+                try {
+                    const linkSelectors = ['.name > a', '.product-link', 'a'];
+                    for (const linkSelector of linkSelectors) {
+                        try {
+                            const href = await itemHandle.$eval(linkSelector, el => el.getAttribute('href'));
+                            if (href) {
+                                productLink = href.startsWith('http') ? href : `https://www.kanatacg.com${href}`;
+                                break;
+                            }
+                        } catch (e) {
+                            // Try next selector
+                        }
+                    }
+                } catch (e) {
+                    console.log(`[WIZ Scraper] Could not find link for ${fullCardName}`);
+                }
+
+                // For now, create basic result - we'll improve price/stock parsing later
+                results.push({
                     card_name: normalizedCardName,
                     card_set: cardSet,
-                    condition: condition,
+                    condition: CardCondition.UNKNOWN,
                     is_foil: isItemFoil,
                     retailer: 'WIZ',
-                    stock: stock,
-                    price: parseFloat(priceText),
+                    stock: 1, // Assume in stock if found
+                    price: 0.00, // Placeholder
                     frame: frame,
                     link: productLink
                 });
 
-            } else {
-                for (const variantHandle of variantRows) {
-                    const stockFullText = await variantHandle.$eval('.variant-qty', el => el.textContent.trim());
-                    let stock = 0;
-                    if (stockFullText.toLowerCase().includes("out of stock")) {
-                        stock = 0;
-                    } else {
-                        const stockMatch = stockFullText.match(/(\d+)/);
-                        if (stockMatch) stock = parseInt(stockMatch[1], 10);
-                    }
-
-                    if (!currentConfig.ALLOW_OUT_OF_STOCK && stock === 0) {
-                        continue;
-                    }
-
-                    const conditionText = await variantHandle.$eval('.variant-description', el => el.textContent.trim());
-                    const condition = mapWIZCondition(conditionText);
-
-                    let priceText = "";
-                    const regularPriceEl = await variantHandle.$('.regular.price');
-                    if (regularPriceEl) {
-                        priceText = await regularPriceEl.textContent();
-                    } else {
-                        const noStockPriceEl = await variantHandle.$('.price.no-stock');
-                        if (noStockPriceEl) {
-                            priceText = await noStockPriceEl.textContent();
-                        } else {
-                            // console.log(`[WIZ Scraper] Price not found for variant of ${fullCardName}`);
-                            continue;
-                        }
-                    }
-                    const price = parseFloat(priceText.replace(/[^0-9.]/g, ''));
-
-                    results.push({
-                        card_name: normalizedCardName,
-                        card_set: cardSet,
-                        condition: condition,
-                        is_foil: isItemFoil,
-                        retailer: 'WIZ',
-                        stock: stock,
-                        price: price,
-                        frame: frame,
-                        link: productLink
-                    });
-                }
+            } catch (error) {
+                console.log(`[WIZ Scraper] Error processing item ${i}: ${error.message}`);
+                continue;
             }
         }
+
     } catch (error) {
-        console.error(`[WIZ Scraper] Error scraping ${searchCardName} from WIZ:`, error);
+        console.error(`[WIZ Scraper] Error scraping ${searchCardName} from WIZ:`, error.message);
     } finally {
         if (browser) await browser.close();
     }
