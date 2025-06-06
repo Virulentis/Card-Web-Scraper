@@ -39,32 +39,33 @@ This is a complete remake of an original Python-based CLI scraper, now built wit
 
 ## Project Structure
 
+This `README.md` is located at the root of the `card_scraper_web_app` project folder. The structure is as follows:
+
 ```
-.
+card_scraper_web_app/      # This project's root
 ├── backend/                 # Node.js backend application
-│   ├── scrapers/            # Individual scraper modules (f2f_scraper.js, etc.)
-│   ├── analysis.js          # Deck cost analysis logic
-│   ├── config.js            # Backend configuration (in-memory)
-│   ├── data_structures.js   # Data models (e.g., CardCondition)
+│   ├── scrapers/            # ...
+│   ├── analysis.js          # ...
+│   ├── config.js            # ...
+│   ├── data_structures.js   # ...
 │   ├── package.json
-│   └── server.js            # Express server and API endpoint definitions
+│   └── server.js            # ...
 ├── frontend/                # React frontend application
-│   ├── public/              # Static assets
+│   ├── public/              # ...
 │   ├── src/
-│   │   ├── components/      # UI components (shadcn/ui, theme-provider)
-│   │   ├── services/        # API service layer (api.js)
-│   │   ├── App.jsx          # Main application component
-│   │   ├── index.css        # Global styles and Tailwind directives
-│   │   └── main.jsx         # React app entry point
+│   │   ├── components/      # ...
+│   │   ├── services/        # ...
+│   │   ├── App.jsx          # ...
+│   │   ├── index.css        # ...
+│   │   └── main.jsx         # ...
 │   ├── package.json
 │   ├── vite.config.js
-│   └── ...                  # Other Vite/Tailwind configs
-├── .gitignore
+│   └── ...
+├── .gitignore               # .gitignore for the card_scraper_web_app project
 └── README.md                # This file
 ```
 
-(Note: The above structure refers to the `card_scraper_web_app` directory if the repo root is one level above it, or the current directory if this `README.md` is at the true project root.)
-
+If this `card_scraper_web_app` folder is part of a larger repository, the paths in "Setup and Installation" and "Running the Application" should be considered relative to this folder.
 
 ## Prerequisites
 
@@ -74,18 +75,10 @@ This is a complete remake of an original Python-based CLI scraper, now built wit
 
 ## Setup and Installation
 
-1.  **Clone the Repository:**
-    ```bash
-    # git clone <repository_url>
-    # cd <repository_directory>
-    ```
-    (If you cloned, ensure you are in the directory that contains `backend` and `frontend` folders, e.g., `card_scraper_web_app` if that's the sub-folder cloned, or the main repo root if it was cloned directly.)
+1.  **Navigate to this Project Directory:**
+    Ensure your terminal is in this `card_scraper_web_app` directory (i.e., the same directory as this README.md). If you've cloned a larger repository, `cd` into `card_scraper_web_app`.
 
-
-2.  **Navigate to the project directory if applicable:**
-    If the `backend` and `frontend` folders are inside a `card_scraper_web_app` sub-directory from your git clone root, `cd card_scraper_web_app`. This README should be in the same directory as `backend` and `frontend`.
-
-3.  **Install Backend Dependencies:**
+2.  **Install Backend Dependencies:**
     ```bash
     cd backend
     npm install
@@ -93,7 +86,7 @@ This is a complete remake of an original Python-based CLI scraper, now built wit
     cd ..
     ```
 
-4.  **Install Frontend Dependencies:**
+3.  **Install Frontend Dependencies:**
     ```bash
     cd frontend
     npm install
@@ -103,14 +96,14 @@ This is a complete remake of an original Python-based CLI scraper, now built wit
 ## Running the Application
 
 1.  **Start the Backend Server:**
-    Open a terminal, navigate to the `backend` directory (relative to this README), and run:
+    Open a terminal, navigate to the `backend` directory (from this project's root), and run:
     ```bash
     npm start
     ```
     The backend server will typically start on `http://localhost:3001`.
 
 2.  **Start the Frontend Development Server:**
-    Open another terminal, navigate to the `frontend` directory (relative to this README), and run:
+    Open another terminal, navigate to the `frontend` directory (from this project's root), and run:
     ```bash
     npm run dev
     ```

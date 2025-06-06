@@ -1,0 +1,30 @@
+import React from 'react';
+import { ThemeProvider, useTheme } from './components/theme-provider';
+import { Button } from '@/components/ui/button'; // Auto-import from shadcn add
+
+function AppContent() {
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center">
+      <h1 className="text-3xl font-bold mb-4">MTG Card Scraper - Web</h1>
+      <p className="mb-2">Current Theme: {theme}</p>
+      <Button
+        onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+      >
+        Toggle Theme (Light/Dark)
+      </Button>
+      {/* More UI will go here */}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+export default App;

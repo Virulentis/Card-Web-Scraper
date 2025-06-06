@@ -1,0 +1,52 @@
+const express = require('express');
+const { getConfig, setConfig } = require('./config');
+const { scrapeF2F } = require('./scrapers/f2f_scraper');
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(express.json()); // Middleware to parse JSON bodies
+
+// Endpoint to get current configuration
+app.get('/api/config', (req, res) => {
+    res.json(getConfig());
+});
+
+// Endpoint to update configuration
+app.put('/api/config', (req, res) => {
+    const newConfig = req.body;
+    // Add any validation for newConfig here if necessary
+    const updatedConfig = setConfig(newConfig);
+    res.json({ message: 'Configuration updated', config: updatedConfig });
+});
+
+// Placeholder for quick scrape endpoint
+app.post('/api/scrape/quick', async (req, res) => {
+    const { cardName } = req.body;
+    const currentConfig = getConfig(); // Get current config
+
+    if (!cardName) {
+        return res.status(400).json({ error: 'cardName is required' });
+    }
+    try {
+        const f2fResults = await scrapeF2F(cardName, currentConfig);
+        res.json({ message: `Quick scrape initiated for: ${cardName}`, data: f2fResults });
+    } catch (error) {
+        console.error('Scraping error in route:', error);
+        res.status(500).json({ error: 'Failed to scrape card data' });
+    }
+});
+
+// Placeholder for full scrape endpoint
+app.post('/api/scrape/full', (req, res) => {
+    const { cardList } = req.body; // Assuming cardList is an array of names
+    if (!cardList || !Array.isArray(cardList) || cardList.length === 0) {
+        return res.status(400).json({ error: 'cardList (array of strings) is required' });
+    }
+    // TODO: Implement actual scraping logic
+    res.json({ message: 'Full scrape initiated.', data: [] });
+});
+
+app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
