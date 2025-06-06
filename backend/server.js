@@ -1,12 +1,19 @@
 const express = require('express');
+const cors = require('cors');
 const { getConfig, setConfig } = require('./config');
 const { scrapeF2F } = require('./scrapers/f2f_scraper');
 const { scrapeWIZ } = require('./scrapers/wiz_scraper');
 const { scrape401G } = require('./scrapers/g401_scraper');
-const { calculateDeckCost } = require('./analysis'); // Added analysis
+const { calculateDeckCost } = require('./analysis');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// CORS configuration - allow frontend to communicate with backend
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:3000'],
+    credentials: true
+}));
 
 app.use(express.json()); // Middleware to parse JSON bodies, crucial for POST requests
 
