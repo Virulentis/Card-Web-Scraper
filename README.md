@@ -23,8 +23,9 @@ This is a complete remake of an original Python-based CLI scraper, now built wit
     - Option to include/exclude foil cards
     - Option to include/exclude out-of-stock cards
 - **Deck Cost Analysis:** Calculates the minimum cost to acquire a list of cards based on scraped prices
-- **Real-time Logs:** View application activity and error messages in the UI
-- **Error Handling:** Comprehensive error handling with user-friendly messages
+- **Real-time Logs:** View application activity and error messages in the UI with detailed scraper debugging
+- **Error Handling:** Comprehensive error handling with user-friendly messages and detailed technical logs
+- **Robust Scraping:** Scrapers automatically try multiple selectors and provide fallbacks when websites change
 
 ## Tech Stack
 
@@ -92,7 +93,7 @@ card_scraper_web_app/
 From the project root directory:
 
 ```bash
-# Install all dependencies (root, backend, and frontend)
+# Install all dependencies (root, backend, frontend + Playwright browsers)
 npm run install:all
 
 # Start the entire application (backend + frontend)
@@ -100,11 +101,14 @@ npm start
 ```
 
 This will:
+- Install root dependencies (concurrently)
+- Install backend dependencies and Playwright browsers
+- Install frontend dependencies  
 - Start the backend API server on `http://localhost:3001`
 - Start the frontend development server on `http://localhost:5173`
 - Automatically open the application in your browser
 
-That's it! The application should now be running and fully functional.
+That's it! The application should now be running and fully functional. The first run will take longer as Playwright downloads browser binaries (~200MB).
 
 ## Manual Setup (Alternative)
 
@@ -153,7 +157,9 @@ npm run dev
 
 From the project root:
 
-- `npm run install:all` - Install dependencies for all parts of the application
+- `npm run install:all` - Install dependencies for all parts of the application + Playwright browsers
+- `npm run setup` - Alias for `install:all` 
+- `npm run install:browsers` - Install only Playwright browsers (if needed later)
 - `npm start` - Start both backend and frontend in development mode
 - `npm run dev` - Alias for `npm start`
 - `npm run start:backend` - Start only the backend server
@@ -178,6 +184,11 @@ The backend provides the following REST API endpoints:
 - **Results:** View scraped data in a sortable table showing prices, conditions, stock, and retailer info
 - **Deck Analysis:** Click "Analyze Deck Cost" to calculate the minimum cost for acquiring all unique cards
 
+**First-time Usage:**
+- The first search may take longer as Playwright initializes browsers
+- Check the logs section for detailed scraping progress
+- If no results appear, check the troubleshooting section below
+
 ### Configuration Tab
 - **Foil Cards:** Toggle to include/exclude foil versions of cards
 - **Out of Stock:** Toggle to include/exclude cards that are currently out of stock
@@ -188,6 +199,7 @@ The backend provides the following REST API endpoints:
 - **Theme Toggle:** Switch between light and dark mode using the button in the header
 - **Real-time Logs:** Monitor scraping progress and view error messages in the logs section
 - **Error Handling:** User-friendly error messages for network issues, invalid inputs, etc.
+- **Debugging Output:** Detailed technical logs help diagnose scraper issues
 
 ## Development
 
@@ -208,6 +220,17 @@ To add a new retailer scraper:
 3. Export the function and import it in `server.js`
 4. Add configuration options in `backend/config.js`
 5. Update the frontend configuration UI in `App.jsx`
+
+### Maintaining Scrapers
+
+Web scraping is inherently fragile because websites change their structure frequently. When scrapers break:
+
+1. **Check the logs** - The scrapers provide detailed debugging output
+2. **Inspect the website** - Use browser developer tools to find new selectors
+3. **Update selectors** - Modify the scraper files with new CSS selectors
+4. **Test thoroughly** - Verify the scraper works with various search terms
+
+The scrapers are designed to be resilient with multiple fallback selectors, but periodic maintenance is expected.
 
 ### Contributing
 
@@ -288,3 +311,14 @@ The scrapers now include extensive debugging output. When a search fails, you'll
 ## License
 
 This project is licensed under the ISC License.
+
+## Current Status
+
+**Scraper Status (as of latest update):**
+- ✅ **Infrastructure**: Fully functional backend API and frontend UI
+- 🔧 **F2F Games**: Recently updated with improved error handling and debugging  
+- 🔧 **Wizards Tower**: Recently updated with multiple selector fallbacks
+- 🔧 **401 Games**: Recently updated with robust element detection
+- ⚠️ **Note**: Scrapers may need periodic updates as retailers change their websites
+
+The application is fully functional for testing and development. If scrapers fail to find results, check the detailed logs in the UI and refer to the troubleshooting section.
