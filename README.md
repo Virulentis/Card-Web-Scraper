@@ -219,23 +219,71 @@ To add a new retailer scraper:
 
 ## Troubleshooting
 
+### Common Setup Issues
+
 **Frontend can't connect to backend:**
 - Ensure both servers are running (`npm start` or run them separately)
 - Check that backend is running on port 3001 and frontend on 5173
 - Verify CORS configuration in `backend/server.js`
-
-**Scraping errors:**
-- Check the logs section in the UI for specific error messages
-- Ensure you have a stable internet connection
-- Some retailers may have anti-bot measures that occasionally block requests
+- Look for "Failed to fetch" errors in the browser console
 
 **Missing dependencies:**
 - Run `npm run install:all` to ensure all dependencies are installed
-- If Playwright browsers are missing, run `cd backend && npx playwright install --with-deps`
+- If you get Playwright browser errors, run `npm run install:browsers`
+- For individual setup: `cd backend && npx playwright install --with-deps`
 
 **Port conflicts:**
 - Backend uses port 3001, frontend uses port 5173
 - If these ports are busy, you can modify them in the respective package.json files
+- Kill existing processes: `lsof -ti:3001 | xargs kill` (Mac/Linux)
+
+### Scraping Issues
+
+**No results found:**
+- The scrapers include detailed logging - check your terminal output
+- Websites frequently change their HTML structure, breaking scrapers
+- Look for messages like "Page indicates no results" vs "Selector not found"
+
+**Timeout errors:**
+- Some websites have anti-bot measures or slow loading
+- The scrapers will try multiple selectors before giving up
+- Check your internet connection stability
+
+**Specific retailer failures:**
+- **F2F Games**: Look for "hawk-results" selectors in logs
+- **Wizards Tower**: Check if ".name > a" selector errors appear
+- **401 Games**: Watch for "fs-results-product-card" selector issues
+
+### Scraper Debugging
+
+The scrapers now include extensive debugging output. When a search fails, you'll see:
+
+```
+[F2F Scraper] Navigating to: https://www.facetofacegames.com/search/...
+[F2F Scraper] Page title: Search Results - Face to Face Games
+[F2F Scraper] Selector '.hawk-results__action-stockPrice' not found
+[F2F Scraper] Found results using selector: .hawk-results-item__inner
+[F2F Scraper] Found 5 product items
+[F2F Scraper] Found card: "Sol Ring (Retro)" -> normalized: "Sol Ring"
+```
+
+**If scrapers consistently fail:**
+1. Check if the retailer websites are accessible in your browser
+2. The HTML structure may have changed - this is common with web scraping
+3. Consider updating the selectors in the scraper files
+4. Some sites may block automated requests
+
+### Performance Issues
+
+**Slow scraping:**
+- Each retailer is scraped sequentially to avoid overwhelming servers
+- Playwright needs to launch browsers for each request
+- Consider disabling retailers you don't need in the Configuration tab
+
+**Memory usage:**
+- Each scraper launches a separate browser instance
+- Browsers are automatically closed after each scrape
+- If you see memory issues, try scraping fewer cards at once
 
 ## License
 
