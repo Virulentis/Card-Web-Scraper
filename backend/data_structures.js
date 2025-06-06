@@ -38,4 +38,3 @@ module.exports = {
 // No explicit Card class or constructor is defined here,
 // as plain JavaScript objects are usually sufficient.
 // If methods were needed on Card objects, a class would be more appropriate.
-EOF
