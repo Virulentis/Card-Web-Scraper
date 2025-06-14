@@ -1,0 +1,26 @@
+{
+  "name": "card_scraper_web_app",
+  "version": "1.0.0",
+  "description": "MTG Card Scraper Web Application",
+  "main": "index.js",
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && npx playwright install --with-deps && cd ../frontend && npm install",
+    "install:browsers": "cd backend && npx playwright install --with-deps",
+    "setup": "npm run install:all",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "dev": "npm run start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["mtg", "card", "scraper", "react", "express"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
